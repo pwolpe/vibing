@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Total Return Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1e1e1e;
+            --border-color: #2a2a2a;
+            --text-primary: #e8e8e8;
+            --text-secondary: #888;
+            --text-muted: #555;
+            --accent-orange: #ff8c00;
+            --accent-green: #00c853;
+            --accent-red: #ff3d3d;
+            --accent-blue: #4da6ff;
+            --accent-yellow: #ffd740;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 12px 24px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent-orange);
+            border-bottom-color: var(--accent-orange);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent-orange);
+            letter-spacing: -0.02em;
+        }
+
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Input Panel */
+        .input-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-group input {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-primary);
+            width: 140px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.15);
+        }
+
+        .input-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-group.ticker input {
+            width: 120px;
+            text-transform: uppercase;
+        }
+
+        .input-group textarea {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-primary);
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            line-height: 1.5;
+        }
+
+        .input-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.15);
+        }
+
+        .input-group textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-group.full-width {
+            width: 100%;
+        }
+
+        .btn-analyze {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 10px 28px;
+            background: var(--accent-orange);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-analyze:hover {
+            background: #ff9f2f;
+        }
+
+        .btn-analyze:active {
+            transform: scale(0.98);
+        }
+
+        .btn-analyze:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            display: none;
+        }
+
+        .results-panel.visible {
+            display: block;
+        }
+
+        /* Summary Header */
+        .summary-header {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .summary-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .summary-value.ticker {
+            color: var(--accent-yellow);
+        }
+
+        /* Results Table */
+        .results-table-wrapper {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .results-table thead {
+            background: var(--bg-tertiary);
+        }
+
+        .results-table th {
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .results-table th:not(:first-child) {
+            text-align: right;
+        }
+
+        .results-table td {
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .results-table td:not(:first-child) {
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .results-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .results-table tbody tr:hover {
+            background: rgba(255, 140, 0, 0.05);
+        }
+
+        .strategy-name {
+            color: var(--text-primary);
+        }
+
+        .strategy-detail {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
+        .positive {
+            color: var(--accent-green);
+        }
+
+        .negative {
+            color: var(--accent-red);
+        }
+
+        /* Chart Section */
+        .chart-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-line.price {
+            background: var(--text-primary);
+        }
+
+        .legend-line.adjusted {
+            background: var(--accent-orange);
+            background: repeating-linear-gradient(
+                90deg,
+                var(--accent-orange),
+                var(--accent-orange) 4px,
+                transparent 4px,
+                transparent 8px
+            );
+        }
+
+        .legend-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            background: rgba(0, 200, 83, 0.3);
+            border: 1px solid var(--accent-green);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .loading.visible {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error-message {
+            display: none;
+            background: rgba(255, 61, 61, 0.1);
+            border: 1px solid var(--accent-red);
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-red);
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        /* Dividend Events */
+        .dividend-events {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .dividend-events-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .dividend-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .dividend-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 6px 10px;
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid rgba(0, 200, 83, 0.3);
+            border-radius: 3px;
+            color: var(--accent-green);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .input-group input {
+                width: 100%;
+            }
+
+            .input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .input-group {
+                width: 100%;
+            }
+
+            .btn-analyze {
+                width: 100%;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            .summary-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .chart-legend {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>Total Return Analysis</h1>
+                <div class="header-subtitle">Stock Price Appreciation & Dividend Reinvestment</div>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="simple">Simple Analysis</button>
+            <button class="tab" data-tab="benchmark">Portfolio Benchmark</button>
+        </div>
+
+        <!-- Simple Analysis Tab -->
+        <div class="tab-content active" id="simple-tab">
+        <div class="input-panel">
+            <div class="input-row">
+                <div class="input-group ticker">
+                    <label for="ticker">Ticker</label>
+                    <input type="text" id="ticker" placeholder="AAPL" maxlength="10">
+                </div>
+                <div class="input-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="input-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="input-group">
+                    <label for="shares">Shares</label>
+                    <input type="number" id="shares" value="100" min="1">
+                </div>
+                <button class="btn-analyze" id="analyzeBtn">Analyze</button>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <span>Fetching data...</span>
+        </div>
+
+        <div class="results-panel" id="resultsPanel">
+            <div class="summary-header">
+                <div class="summary-item">
+                    <span class="summary-label">Ticker</span>
+                    <span class="summary-value ticker" id="summaryTicker">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Period</span>
+                    <span class="summary-value" id="summaryPeriod">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Start Price</span>
+                    <span class="summary-value" id="summaryStartPrice">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">End Price</span>
+                    <span class="summary-value" id="summaryEndPrice">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Total Dividends</span>
+                    <span class="summary-value" id="summaryDividends">—</span>
+                </div>
+            </div>
+
+            <div class="results-table-wrapper">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Holding Strategy</th>
+                            <th>Total Return</th>
+                            <th>Annual Eq.</th>
+                            <th>Gain/Loss</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-header">
+                    <span class="chart-title">Performance Chart</span>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-line price"></span>
+                            <span>Price</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line adjusted"></span>
+                            <span>Dividend Adjusted</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-box"></span>
+                            <span>Total Return %</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+                <div class="dividend-events" id="dividendEvents">
+                    <div class="dividend-events-title">Dividend Events</div>
+                    <div class="dividend-list" id="dividendList"></div>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- End Simple Analysis Tab -->
+
+        <!-- Portfolio Benchmark Tab -->
+        <div class="tab-content" id="benchmark-tab">
+        <div class="input-panel">
+            <div class="input-row">
+                <div class="input-group ticker">
+                    <label for="benchmarkTicker">Ticker</label>
+                    <input type="text" id="benchmarkTicker" placeholder="VT" value="VT" maxlength="10">
+                </div>
+                <div class="input-group">
+                    <label for="benchmarkSellDate">Sell Date</label>
+                    <input type="date" id="benchmarkSellDate">
+                </div>
+                <div class="input-group">
+                    <label for="actualValue">Actual Portfolio Value ($)</label>
+                    <input type="number" id="actualValue" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+            <div class="input-row" style="margin-top: 16px;">
+                <div class="input-group full-width">
+                    <label for="cashFlows">Cash Flows (Paste from Google Sheets)</label>
+                    <textarea id="cashFlows" placeholder="Date&#9;Amount&#10;10/21/2021&#9;-1,430,000&#10;4/7/2022&#9;-12,000&#10;1/6/2023&#9;-6,500"></textarea>
+                </div>
+            </div>
+            <div class="input-row" style="margin-top: 16px;">
+                <button class="btn-analyze" id="benchmarkAnalyzeBtn">Analyze Portfolio</button>
+            </div>
+        </div>
+
+        <div class="error-message" id="benchmarkErrorMessage"></div>
+
+        <div class="loading" id="benchmarkLoading">
+            <div class="loading-spinner"></div>
+            <span>Calculating portfolio performance...</span>
+        </div>
+
+        <div class="results-panel" id="benchmarkResultsPanel">
+            <div class="summary-header">
+                <div class="summary-item">
+                    <span class="summary-label">Ticker</span>
+                    <span class="summary-value ticker" id="benchmarkSummaryTicker">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Period</span>
+                    <span class="summary-value" id="benchmarkSummaryPeriod">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Total Invested</span>
+                    <span class="summary-value" id="benchmarkTotalInvested">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Purchases</span>
+                    <span class="summary-value" id="benchmarkPurchases">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Total Dividends</span>
+                    <span class="summary-value" id="benchmarkDividends">—</span>
+                </div>
+            </div>
+
+            <div class="results-table-wrapper">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Portfolio</th>
+                            <th>Final Value</th>
+                            <th>Gain/Loss</th>
+                            <th>IRR %</th>
+                            <th>TWR %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="benchmarkTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-header">
+                    <span class="chart-title">Portfolio Growth Over Time</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="benchmarkChart"></canvas>
+                </div>
+                <div class="dividend-events" id="benchmarkDividendEvents">
+                    <div class="dividend-events-title">Dividend Events</div>
+                    <div class="dividend-list" id="benchmarkDividendList"></div>
+                </div>
+            </div>
+
+            <div class="results-table-wrapper" style="margin-top: 24px;">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Purchase Date</th>
+                            <th>Amount</th>
+                            <th>Price</th>
+                            <th>Shares</th>
+                        </tr>
+                    </thead>
+                    <tbody id="benchmarkPurchasesTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+        <!-- End Portfolio Benchmark Tab -->
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION - Add your Tiingo API key here
+        // ============================================
+        const TIINGO_API_KEY = '6523b8c90ee93b29737a1fd0c953e2b603b49d0b';
+
+        // DOM Elements
+        const tickerInput = document.getElementById('ticker');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const sharesInput = document.getElementById('shares');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('errorMessage');
+        const resultsPanel = document.getElementById('resultsPanel');
+
+        // Chart instance
+        let chartInstance = null;
+        let benchmarkChartInstance = null;
+
+        // Set default dates (1 year ago to today)
+        const today = new Date();
+        const oneYearAgo = new Date(today);
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+        endDateInput.value = formatDateForInput(today);
+        startDateInput.value = formatDateForInput(oneYearAgo);
+
+        // Event Listeners
+        analyzeBtn.addEventListener('click', runAnalysis);
+        tickerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') runAnalysis();
+        });
+
+        // Format date for input element (YYYY-MM-DD)
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // Format date for display (MM/DD/YYYY)
+        function formatDateForDisplay(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { 
+                month: '2-digit', 
+                day: '2-digit', 
+                year: 'numeric' 
+            });
+        }
+
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
+        // Format percentage
+        function formatPercent(value) {
+            const sign = value >= 0 ? '+' : '';
+            return sign + value.toFixed(4) + '%';
+        }
+
+        // Show/hide elements
+        function showLoading(show) {
+            loadingEl.classList.toggle('visible', show);
+        }
+
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+        }
+
+        function hideError() {
+            errorEl.classList.remove('visible');
+        }
+
+        function showResults(show) {
+            resultsPanel.classList.toggle('visible', show);
+        }
+
+        // Fetch price data from Tiingo
+        async function fetchPriceData(ticker, startDate, endDate) {
+            const url = `https://api.tiingo.com/tiingo/daily/${ticker}/prices?startDate=${startDate}&endDate=${endDate}&token=${TIINGO_API_KEY}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Ticker "${ticker}" not found`);
+                }
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            return response.json();
+        }
+
+        // Fetch dividend data from Tiingo
+        async function fetchDividendData(ticker, startDate, endDate) {
+            const url = `https://api.tiingo.com/tiingo/daily/${ticker}/prices?startDate=${startDate}&endDate=${endDate}&token=${TIINGO_API_KEY}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                return [];
+            }
+            
+            const data = await response.json();
+            // Extract dividend events (where divCash > 0)
+            return data.filter(d => d.divCash && d.divCash > 0).map(d => ({
+                date: d.date.split('T')[0],
+                amount: d.divCash
+            }));
+        }
+
+        // Calculate annualized return
+        function calculateAnnualizedReturn(totalReturn, startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const years = (end - start) / (365.25 * 24 * 60 * 60 * 1000);
+            
+            if (years <= 0) return 0;
+            
+            // Annualized return = (1 + total return)^(1/years) - 1
+            const annualized = Math.pow(1 + totalReturn / 100, 1 / years) - 1;
+            return annualized * 100;
+        }
+
+        // Main analysis function
+        async function runAnalysis() {
+            const ticker = tickerInput.value.trim().toUpperCase();
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+            const shares = parseFloat(sharesInput.value) || 100;
+
+            // Validation
+            if (!ticker) {
+                showError('Please enter a ticker symbol');
+                return;
+            }
+            if (!startDate || !endDate) {
+                showError('Please select start and end dates');
+                return;
+            }
+            if (new Date(startDate) >= new Date(endDate)) {
+                showError('Start date must be before end date');
+                return;
+            }
+
+            hideError();
+            showResults(false);
+            showLoading(true);
+            analyzeBtn.disabled = true;
+
+            try {
+                // Fetch data
+                const priceData = await fetchPriceData(ticker, startDate, endDate);
+                
+                if (!priceData || priceData.length === 0) {
+                    throw new Error('No price data available for this period');
+                }
+
+                // Process data
+                const results = calculateReturns(priceData, shares);
+                
+                // Update UI
+                updateSummary(ticker, startDate, endDate, results);
+                updateTable(results);
+                updateChart(priceData, results);
+                updateDividendEvents(results.dividends);
+                
+                showResults(true);
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showError(error.message || 'Failed to fetch data. Please check your API key and ticker.');
+            } finally {
+                showLoading(false);
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // Calculate returns
+        function calculateReturns(priceData, initialShares) {
+            const startPrice = priceData[0].adjClose;
+            const endPrice = priceData[priceData.length - 1].adjClose;
+            const startDate = priceData[0].date.split('T')[0];
+            const endDate = priceData[priceData.length - 1].date.split('T')[0];
+            
+            // Get raw (unadjusted) prices for simple price appreciation
+            const startPriceRaw = priceData[0].close;
+            const endPriceRaw = priceData[priceData.length - 1].close;
+
+            // Extract dividends
+            const dividends = priceData
+                .filter(d => d.divCash && d.divCash > 0)
+                .map(d => ({
+                    date: d.date.split('T')[0],
+                    amount: d.divCash,
+                    price: d.close // Price on ex-date for reinvestment
+                }));
+
+            // Initial investment value
+            const initialInvestment = initialShares * startPriceRaw;
+
+            // ===== Strategy 1: Simple Price Appreciation =====
+            const simplePriceReturn = ((endPriceRaw - startPriceRaw) / startPriceRaw) * 100;
+            const simpleGainLoss = (endPriceRaw - startPriceRaw) * initialShares;
+            const simpleAnnualized = calculateAnnualizedReturn(simplePriceReturn, startDate, endDate);
+
+            // ===== Strategy 2: Dividends Reinvested =====
+            let currentShares = initialShares;
+            let totalDividendsPaid = 0;
+            
+            // Build daily series for charting
+            const dailyPriceOnly = [];
+            const dailyDividendAdjusted = [];
+            const dailyTotalReturn = [];
+            
+            priceData.forEach((day, index) => {
+                const date = day.date.split('T')[0];
+                const price = day.close;
+                
+                // Check for dividend on this day
+                if (day.divCash && day.divCash > 0) {
+                    const dividendAmount = day.divCash * currentShares;
+                    totalDividendsPaid += dividendAmount;
+                    
+                    // Reinvest dividend at ex-date closing price
+                    const newShares = dividendAmount / price;
+                    currentShares += newShares;
+                }
+                
+                // Calculate daily values
+                const priceOnlyValue = initialShares * price;
+                const dividendAdjustedValue = currentShares * price;
+                const totalReturnPct = ((dividendAdjustedValue - initialInvestment) / initialInvestment) * 100;
+                
+                dailyPriceOnly.push({ date, value: priceOnlyValue });
+                dailyDividendAdjusted.push({ date, value: dividendAdjustedValue });
+                dailyTotalReturn.push({ date, value: totalReturnPct });
+            });
+
+            // Final dividend reinvested calculations
+            const finalValueWithDividends = currentShares * endPriceRaw;
+            const dividendReinvestedReturn = ((finalValueWithDividends - initialInvestment) / initialInvestment) * 100;
+            const dividendReinvestedGainLoss = finalValueWithDividends - initialInvestment;
+            const dividendReinvestedAnnualized = calculateAnnualizedReturn(dividendReinvestedReturn, startDate, endDate);
+            const additionalSharesPurchased = currentShares - initialShares;
+
+            return {
+                startDate,
+                endDate,
+                startPrice: startPriceRaw,
+                endPrice: endPriceRaw,
+                initialShares,
+                initialInvestment,
+                dividends,
+                totalDividendsPaid,
+                strategies: {
+                    simple: {
+                        name: 'Simple Price Appreciation',
+                        totalReturn: simplePriceReturn,
+                        annualized: simpleAnnualized,
+                        gainLoss: simpleGainLoss,
+                        detail: null
+                    },
+                    reinvested: {
+                        name: 'Dividends Reinvested in Security',
+                        totalReturn: dividendReinvestedReturn,
+                        annualized: dividendReinvestedAnnualized,
+                        gainLoss: dividendReinvestedGainLoss,
+                        detail: `Shares Purchased: ${additionalSharesPurchased.toFixed(2)}`
+                    }
+                },
+                chartData: {
+                    priceOnly: dailyPriceOnly,
+                    dividendAdjusted: dailyDividendAdjusted,
+                    totalReturn: dailyTotalReturn
+                }
+            };
+        }
+
+        // Update summary header
+        function updateSummary(ticker, startDate, endDate, results) {
+            document.getElementById('summaryTicker').textContent = ticker;
+            document.getElementById('summaryPeriod').textContent = 
+                `${formatDateForDisplay(results.startDate)} — ${formatDateForDisplay(results.endDate)}`;
+            document.getElementById('summaryStartPrice').textContent = formatCurrency(results.startPrice);
+            document.getElementById('summaryEndPrice').textContent = formatCurrency(results.endPrice);
+            document.getElementById('summaryDividends').textContent = formatCurrency(results.totalDividendsPaid);
+        }
+
+        // Update results table
+        function updateTable(results) {
+            const tbody = document.getElementById('resultsTableBody');
+            tbody.innerHTML = '';
+
+            Object.values(results.strategies).forEach(strategy => {
+                const row = document.createElement('tr');
+                const returnClass = strategy.totalReturn >= 0 ? 'positive' : 'negative';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="strategy-name">${strategy.name}</div>
+                        ${strategy.detail ? `<div class="strategy-detail">${strategy.detail}</div>` : ''}
+                    </td>
+                    <td class="${returnClass}">${formatPercent(strategy.totalReturn)}</td>
+                    <td class="${returnClass}">${formatPercent(strategy.annualized)}</td>
+                    <td class="${returnClass}">${formatCurrency(strategy.gainLoss)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Update chart
+        function updateChart(priceData, results) {
+            const ctx = document.getElementById('chart').getContext('2d');
+            
+            // Destroy existing chart
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const { priceOnly, dividendAdjusted, totalReturn } = results.chartData;
+
+            // Get dividend dates for annotations
+            const dividendDates = results.dividends.map(d => d.date);
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: priceOnly.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Price Only Value',
+                            data: priceOnly.map(d => d.value),
+                            borderColor: '#e8e8e8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Dividend Adjusted Value',
+                            data: dividendAdjusted.map(d => d.value),
+                            borderColor: '#ff8c00',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Total Return %',
+                            data: totalReturn.map(d => d.value),
+                            borderColor: '#00c853',
+                            backgroundColor: 'rgba(0, 200, 83, 0.15)',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e1e1e',
+                            titleColor: '#e8e8e8',
+                            bodyColor: '#e8e8e8',
+                            borderColor: '#2a2a2a',
+                            borderWidth: 1,
+                            titleFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            },
+                            bodyFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            },
+                            padding: 12,
+                            callbacks: {
+                                title: (items) => {
+                                    const date = items[0].label;
+                                    const isDividendDate = dividendDates.includes(date);
+                                    return isDividendDate ? `${formatDateForDisplay(date)} 💰` : formatDateForDisplay(date);
+                                },
+                                label: (context) => {
+                                    const label = context.dataset.label;
+                                    const value = context.raw;
+                                    if (label === 'Total Return %') {
+                                        return `${label}: ${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+                                    }
+                                    return `${label}: ${formatCurrency(value)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'month',
+                                displayFormats: {
+                                    month: 'MMM yyyy'
+                                }
+                            },
+                            grid: {
+                                color: '#2a2a2a',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#888',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            position: 'left',
+                            grid: {
+                                color: '#2a2a2a',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#888',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
+                                callback: (value) => '$' + value.toLocaleString()
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#00c853',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
+                                callback: (value) => value.toFixed(0) + '%'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update dividend events list
+        function updateDividendEvents(dividends) {
+            const container = document.getElementById('dividendEvents');
+            const list = document.getElementById('dividendList');
+            
+            if (dividends.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            list.innerHTML = dividends.map(d => `
+                <span class="dividend-tag">
+                    ${formatDateForDisplay(d.date)}: ${formatCurrency(d.amount)}/share
+                </span>
+            `).join('');
+        }
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update active content
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`${targetTab}-tab`).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // PORTFOLIO BENCHMARK TAB
+        // ============================================
+
+        // DOM Elements for benchmark tab
+        const benchmarkTickerInput = document.getElementById('benchmarkTicker');
+        const benchmarkSellDateInput = document.getElementById('benchmarkSellDate');
+        const actualValueInput = document.getElementById('actualValue');
+        const cashFlowsInput = document.getElementById('cashFlows');
+        const benchmarkAnalyzeBtn = document.getElementById('benchmarkAnalyzeBtn');
+        const benchmarkLoadingEl = document.getElementById('benchmarkLoading');
+        const benchmarkErrorEl = document.getElementById('benchmarkErrorMessage');
+        const benchmarkResultsPanel = document.getElementById('benchmarkResultsPanel');
+
+        // Set default sell date to previous business day
+        function getPreviousBusinessDay() {
+            const date = new Date();
+            let dayOfWeek = date.getDay();
+
+            // If Sunday (0), go back 2 days. If Saturday (6), go back 1 day. Otherwise today.
+            if (dayOfWeek === 0) {
+                date.setDate(date.getDate() - 2);
+            } else if (dayOfWeek === 6) {
+                date.setDate(date.getDate() - 1);
+            }
+            // If it's Monday and today is early, could go back to Friday, but let's keep it simple
+
+            return date;
+        }
+
+        benchmarkSellDateInput.value = formatDateForInput(getPreviousBusinessDay());
+
+        // Event Listeners
+        benchmarkAnalyzeBtn.addEventListener('click', runBenchmarkAnalysis);
+
+        // Helper functions for benchmark tab
+        function showBenchmarkLoading(show) {
+            benchmarkLoadingEl.classList.toggle('visible', show);
+        }
+
+        function showBenchmarkError(message) {
+            benchmarkErrorEl.textContent = message;
+            benchmarkErrorEl.classList.add('visible');
+        }
+
+        function hideBenchmarkError() {
+            benchmarkErrorEl.classList.remove('visible');
+        }
+
+        function showBenchmarkResults(show) {
+            benchmarkResultsPanel.classList.toggle('visible', show);
+        }
+
+        // Parse Google Sheets data
+        function parseCashFlows(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length === 0) {
+                throw new Error('No cash flow data provided');
+            }
+
+            const cashFlows = [];
+
+            // Skip header row if it contains "Date" or "Amount"
+            const startIndex = lines[0].toLowerCase().includes('date') || lines[0].toLowerCase().includes('amount') ? 1 : 0;
+
+            for (let i = startIndex; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const parts = line.split('\t');
+                if (parts.length < 2) {
+                    throw new Error(`Invalid format on line ${i + 1}. Expected tab-separated Date and Amount.`);
+                }
+
+                const dateStr = parts[0].trim();
+                const amountStr = parts[1].trim();
+
+                // Parse date (M/D/YYYY format)
+                const dateParts = dateStr.split('/');
+                if (dateParts.length !== 3) {
+                    throw new Error(`Invalid date format on line ${i + 1}: ${dateStr}. Expected M/D/YYYY.`);
+                }
+
+                const month = parseInt(dateParts[0]);
+                const day = parseInt(dateParts[1]);
+                const year = parseInt(dateParts[2]);
+                const date = new Date(year, month - 1, day);
+                const isoDate = formatDateForInput(date);
+
+                // Parse amount (remove commas, dollar signs, and handle negative)
+                const amount = Math.abs(parseFloat(amountStr.replace(/[$,]/g, '')));
+
+                if (isNaN(amount)) {
+                    throw new Error(`Invalid amount on line ${i + 1}: ${amountStr}`);
+                }
+
+                cashFlows.push({ date: isoDate, amount });
+            }
+
+            // Sort by date
+            cashFlows.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            return cashFlows;
+        }
+
+        // Calculate IRR using Newton-Raphson method
+        function calculateIRR(cashFlows, finalValue, sellDate) {
+            // Create array of all cash flows with dates
+            const flows = cashFlows.map(cf => ({
+                date: new Date(cf.date),
+                amount: -cf.amount // Negative because it's an outflow
+            }));
+
+            flows.push({
+                date: new Date(sellDate),
+                amount: finalValue // Positive because it's an inflow
+            });
+
+            // Calculate days from first cash flow
+            const startDate = flows[0].date;
+            const flowsWithDays = flows.map(f => ({
+                days: (f.date - startDate) / (1000 * 60 * 60 * 24),
+                amount: f.amount
+            }));
+
+            // Newton-Raphson iteration
+            let rate = 0.1; // Initial guess: 10%
+            const maxIterations = 100;
+            const tolerance = 0.0001;
+
+            for (let i = 0; i < maxIterations; i++) {
+                let npv = 0;
+                let dnpv = 0;
+
+                flowsWithDays.forEach(f => {
+                    const years = f.days / 365.25;
+                    const discount = Math.pow(1 + rate, years);
+                    npv += f.amount / discount;
+                    dnpv -= f.amount * years / discount / (1 + rate);
+                });
+
+                const newRate = rate - npv / dnpv;
+
+                if (Math.abs(newRate - rate) < tolerance) {
+                    return newRate * 100; // Return as percentage
+                }
+
+                rate = newRate;
+            }
+
+            return rate * 100; // Return as percentage even if not fully converged
+        }
+
+        // Calculate Time-Weighted Return using exact daily valuation
+        function calculateTWR(dailyValues, cashFlows) {
+            // Build a map of cash flow dates
+            const cashFlowMap = {};
+            cashFlows.forEach(cf => {
+                cashFlowMap[cf.date] = cf.amount;
+            });
+
+            let product = 1;
+            let previousValue = 0;
+
+            for (let i = 0; i < dailyValues.length; i++) {
+                const day = dailyValues[i];
+                const cashFlow = cashFlowMap[day.date] || 0;
+
+                if (cashFlow > 0) {
+                    // This is a purchase date
+                    // Sub-period return = (EndValue - BeginValue - CashFlow) / (BeginValue + CashFlow)
+                    // But since we're starting, we need to handle the first purchase differently
+                    if (previousValue === 0) {
+                        previousValue = day.value;
+                    } else {
+                        const subReturn = (day.value - previousValue - cashFlow) / previousValue;
+                        product *= (1 + subReturn);
+                        previousValue = day.value;
+                    }
+                } else if (i === dailyValues.length - 1) {
+                    // Last day - calculate final sub-period return
+                    if (previousValue > 0) {
+                        const subReturn = (day.value - previousValue) / previousValue;
+                        product *= (1 + subReturn);
+                    }
+                } else if (i > 0 && previousValue > 0) {
+                    // Update previous value for tracking
+                    previousValue = day.value;
+                }
+            }
+
+            // TWR = (product - 1) * 100
+            return (product - 1) * 100;
+        }
+
+        // Main benchmark analysis function
+        async function runBenchmarkAnalysis() {
+            const ticker = benchmarkTickerInput.value.trim().toUpperCase();
+            const sellDate = benchmarkSellDateInput.value;
+            const actualValue = parseFloat(actualValueInput.value) || 0;
+            const cashFlowText = cashFlowsInput.value.trim();
+
+            // Validation
+            if (!ticker) {
+                showBenchmarkError('Please enter a ticker symbol');
+                return;
+            }
+            if (!sellDate) {
+                showBenchmarkError('Please select a sell date');
+                return;
+            }
+            if (!cashFlowText) {
+                showBenchmarkError('Please paste cash flow data');
+                return;
+            }
+
+            hideBenchmarkError();
+            showBenchmarkResults(false);
+            showBenchmarkLoading(true);
+            benchmarkAnalyzeBtn.disabled = true;
+
+            try {
+                // Parse cash flows
+                const cashFlows = parseCashFlows(cashFlowText);
+
+                if (cashFlows.length === 0) {
+                    throw new Error('No valid cash flows found');
+                }
+
+                const startDate = cashFlows[0].date;
+                const totalInvested = cashFlows.reduce((sum, cf) => sum + cf.amount, 0);
+
+                // Fetch price data from first purchase to sell date
+                const priceData = await fetchPriceData(ticker, startDate, sellDate);
+
+                if (!priceData || priceData.length === 0) {
+                    throw new Error('No price data available for this period');
+                }
+
+                // Calculate portfolio performance
+                const results = calculatePortfolioPerformance(priceData, cashFlows, sellDate, actualValue);
+
+                // Update UI
+                updateBenchmarkSummary(ticker, startDate, sellDate, cashFlows.length, totalInvested, results);
+                updateBenchmarkTable(results, totalInvested, actualValue);
+                updateBenchmarkChart(results);
+                updateBenchmarkDividendEvents(results.dividends);
+                updateBenchmarkPurchasesTable(results.purchases);
+
+                showBenchmarkResults(true);
+
+            } catch (error) {
+                console.error('Benchmark analysis error:', error);
+                showBenchmarkError(error.message || 'Failed to analyze portfolio. Please check your inputs.');
+            } finally {
+                showBenchmarkLoading(false);
+                benchmarkAnalyzeBtn.disabled = false;
+            }
+        }
+
+        // Calculate portfolio performance with multiple purchases
+        function calculatePortfolioPerformance(priceData, cashFlows, sellDate, actualValue) {
+            // Create a map of cash flows by date
+            const cashFlowMap = {};
+            cashFlows.forEach(cf => {
+                cashFlowMap[cf.date] = cf.amount;
+            });
+
+            let totalShares = 0;
+            let totalDividendsPaid = 0;
+            const purchases = [];
+            const dividends = [];
+            const dailyValues = [];
+
+            // Process each day
+            priceData.forEach((day, index) => {
+                const date = day.date.split('T')[0];
+                const price = day.close;
+
+                // Check for purchase on this day
+                if (cashFlowMap[date]) {
+                    const purchaseAmount = cashFlowMap[date];
+                    const sharesPurchased = purchaseAmount / price;
+                    totalShares += sharesPurchased;
+
+                    purchases.push({
+                        date,
+                        amount: purchaseAmount,
+                        price,
+                        shares: sharesPurchased
+                    });
+                }
+
+                // Check for dividend on this day
+                if (day.divCash && day.divCash > 0) {
+                    const dividendAmount = day.divCash * totalShares;
+                    totalDividendsPaid += dividendAmount;
+
+                    // Reinvest dividend
+                    const newShares = dividendAmount / price;
+                    totalShares += newShares;
+
+                    dividends.push({
+                        date,
+                        amount: day.divCash,
+                        totalPayout: dividendAmount
+                    });
+                }
+
+                // Track daily portfolio value
+                const portfolioValue = totalShares * price;
+                dailyValues.push({
+                    date,
+                    value: portfolioValue,
+                    shares: totalShares
+                });
+            });
+
+            // Final portfolio value
+            const finalValue = dailyValues[dailyValues.length - 1].value;
+            const totalInvested = cashFlows.reduce((sum, cf) => sum + cf.amount, 0);
+            const gainLoss = finalValue - totalInvested;
+
+            // Calculate IRR for modeled portfolio
+            const modeledIRR = calculateIRR(cashFlows, finalValue, sellDate);
+
+            // Calculate TWR for modeled portfolio
+            const modeledTWR = calculateTWR(dailyValues, cashFlows);
+
+            // Calculate IRR for actual portfolio (if provided)
+            let actualIRR = null;
+            let actualGainLoss = null;
+            if (actualValue > 0) {
+                actualIRR = calculateIRR(cashFlows, actualValue, sellDate);
+                actualGainLoss = actualValue - totalInvested;
+            }
+
+            return {
+                startDate: cashFlows[0].date,
+                endDate: sellDate,
+                totalInvested,
+                purchases,
+                dividends,
+                totalDividendsPaid,
+                dailyValues,
+                modeled: {
+                    finalValue,
+                    gainLoss,
+                    irr: modeledIRR,
+                    twr: modeledTWR
+                },
+                actual: {
+                    finalValue: actualValue,
+                    gainLoss: actualGainLoss,
+                    irr: actualIRR
+                }
+            };
+        }
+
+        // Update benchmark summary
+        function updateBenchmarkSummary(ticker, startDate, endDate, numPurchases, totalInvested, results) {
+            document.getElementById('benchmarkSummaryTicker').textContent = ticker;
+            document.getElementById('benchmarkSummaryPeriod').textContent =
+                `${formatDateForDisplay(startDate)} — ${formatDateForDisplay(endDate)}`;
+            document.getElementById('benchmarkTotalInvested').textContent = formatCurrency(totalInvested);
+            document.getElementById('benchmarkPurchases').textContent = numPurchases;
+            document.getElementById('benchmarkDividends').textContent = formatCurrency(results.totalDividendsPaid);
+        }
+
+        // Update benchmark comparison table
+        function updateBenchmarkTable(results, totalInvested, actualValue) {
+            const tbody = document.getElementById('benchmarkTableBody');
+            tbody.innerHTML = '';
+
+            // Modeled portfolio row
+            const modeledRow = document.createElement('tr');
+            const modeledReturnClass = results.modeled.gainLoss >= 0 ? 'positive' : 'negative';
+            modeledRow.innerHTML = `
+                <td><div class="strategy-name">Modeled Portfolio</div></td>
+                <td class="${modeledReturnClass}">${formatCurrency(results.modeled.finalValue)}</td>
+                <td class="${modeledReturnClass}">${formatCurrency(results.modeled.gainLoss)}</td>
+                <td class="${modeledReturnClass}">${formatPercent(results.modeled.irr)}</td>
+                <td class="${modeledReturnClass}">${formatPercent(results.modeled.twr)}</td>
+            `;
+            tbody.appendChild(modeledRow);
+
+            // Actual portfolio row (if provided)
+            if (actualValue > 0) {
+                const actualRow = document.createElement('tr');
+                const actualReturnClass = results.actual.gainLoss >= 0 ? 'positive' : 'negative';
+                actualRow.innerHTML = `
+                    <td><div class="strategy-name">Actual Portfolio</div></td>
+                    <td class="${actualReturnClass}">${formatCurrency(results.actual.finalValue)}</td>
+                    <td class="${actualReturnClass}">${formatCurrency(results.actual.gainLoss)}</td>
+                    <td class="${actualReturnClass}">${formatPercent(results.actual.irr)}</td>
+                    <td class="text-secondary">—</td>
+                `;
+                tbody.appendChild(actualRow);
+
+                // Difference row
+                const diffValue = results.actual.finalValue - results.modeled.finalValue;
+                const diffGainLoss = results.actual.gainLoss - results.modeled.gainLoss;
+                const diffIRR = results.actual.irr - results.modeled.irr;
+                const diffClass = diffValue >= 0 ? 'positive' : 'negative';
+
+                const diffRow = document.createElement('tr');
+                diffRow.innerHTML = `
+                    <td><div class="strategy-name" style="font-weight: 600;">Difference</div></td>
+                    <td class="${diffClass}" style="font-weight: 600;">${formatCurrency(diffValue)}</td>
+                    <td class="${diffClass}" style="font-weight: 600;">${formatCurrency(diffGainLoss)}</td>
+                    <td class="${diffClass}" style="font-weight: 600;">${formatPercent(diffIRR)}</td>
+                    <td class="text-secondary">—</td>
+                `;
+                tbody.appendChild(diffRow);
+            }
+        }
+
+        // Update benchmark chart
+        function updateBenchmarkChart(results) {
+            const ctx = document.getElementById('benchmarkChart').getContext('2d');
+
+            // Destroy existing chart
+            if (benchmarkChartInstance) {
+                benchmarkChartInstance.destroy();
+            }
+
+            const { dailyValues } = results;
+
+            benchmarkChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dailyValues.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Portfolio Value',
+                            data: dailyValues.map(d => d.value),
+                            borderColor: '#ff8c00',
+                            backgroundColor: 'rgba(255, 140, 0, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e1e1e',
+                            titleColor: '#e8e8e8',
+                            bodyColor: '#e8e8e8',
+                            borderColor: '#2a2a2a',
+                            borderWidth: 1,
+                            titleFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            },
+                            bodyFont: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            },
+                            padding: 12,
+                            callbacks: {
+                                title: (items) => formatDateForDisplay(items[0].label),
+                                label: (context) => {
+                                    const value = context.raw;
+                                    const shares = dailyValues[context.dataIndex].shares;
+                                    return [
+                                        `Value: ${formatCurrency(value)}`,
+                                        `Shares: ${shares.toFixed(4)}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'month',
+                                displayFormats: {
+                                    month: 'MMM yyyy'
+                                }
+                            },
+                            grid: {
+                                color: '#2a2a2a',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#888',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#2a2a2a',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#888',
+                                font: {
+                                    family: "'JetBrains Mono', monospace",
+                                    size: 10
+                                },
+                                callback: (value) => '$' + value.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update benchmark dividend events
+        function updateBenchmarkDividendEvents(dividends) {
+            const container = document.getElementById('benchmarkDividendEvents');
+            const list = document.getElementById('benchmarkDividendList');
+
+            if (dividends.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            list.innerHTML = dividends.map(d => `
+                <span class="dividend-tag">
+                    ${formatDateForDisplay(d.date)}: ${formatCurrency(d.amount)}/share (Total: ${formatCurrency(d.totalPayout)})
+                </span>
+            `).join('');
+        }
+
+        // Update benchmark purchases table
+        function updateBenchmarkPurchasesTable(purchases) {
+            const tbody = document.getElementById('benchmarkPurchasesTable');
+            tbody.innerHTML = '';
+
+            purchases.forEach(purchase => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDateForDisplay(purchase.date)}</td>
+                    <td style="text-align: right;">${formatCurrency(purchase.amount)}</td>
+                    <td style="text-align: right;">${formatCurrency(purchase.price)}</td>
+                    <td style="text-align: right;">${purchase.shares.toFixed(4)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
