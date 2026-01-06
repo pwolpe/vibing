@@ -1171,7 +1171,8 @@
                             padding: 12,
                             callbacks: {
                                 title: (items) => {
-                                    const date = items[0].label;
+                                    const dataIndex = items[0].dataIndex;
+                                    const date = priceOnly[dataIndex].date;
                                     const isDividendDate = dividendDates.includes(date);
                                     return isDividendDate ? `${formatDateForDisplay(date)} 💰` : formatDateForDisplay(date);
                                 },
