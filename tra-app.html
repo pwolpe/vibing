@@ -1648,7 +1648,7 @@
             const modeledRow = document.createElement('tr');
             const modeledReturnClass = results.modeled.gainLoss >= 0 ? 'positive' : 'negative';
             modeledRow.innerHTML = `
-                <td><div class="strategy-name">Modeled Portfolio</div></td>
+                <td><div class="strategy-name">Benchmark</div></td>
                 <td class="${modeledReturnClass}">${formatCurrency(results.modeled.finalValue)}</td>
                 <td class="${modeledReturnClass}">${formatCurrency(results.modeled.gainLoss)}</td>
                 <td class="${modeledReturnClass}">${formatPercent(results.modeled.irr)}</td>
