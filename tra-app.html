@@ -717,12 +717,6 @@
                 </table>
             </div>
 
-            <div style="margin-top: 8px; padding: 0 4px;">
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted);">
-                    * Actual TWR approximated using constant compounding assumption
-                </div>
-            </div>
-
             <div class="chart-section">
                 <div class="chart-header">
                     <span class="chart-title">Portfolio Growth Over Time</span>
@@ -1415,49 +1409,6 @@
             return rate * 100; // Return as percentage even if not fully converged
         }
 
-        // Calculate approximate TWR for actual portfolio assuming constant compounding
-        // Finds the constant geometric return rate that produces the final value
-        function calculateApproximateTWR(cashFlows, finalValue, sellDate) {
-            const endDate = new Date(sellDate);
-
-            // Build array of cash flows with their time to final value
-            const flowsWithTime = cashFlows.map(cf => {
-                const cfDate = new Date(cf.date);
-                const years = (endDate - cfDate) / (365.25 * 24 * 60 * 60 * 1000);
-                return {
-                    amount: cf.amount,
-                    years: years
-                };
-            });
-
-            // Use Newton-Raphson to solve for constant return rate r where:
-            // Sum(cashFlow_i * (1+r)^years_i) = finalValue
-            let rate = 0.1; // Initial guess: 10% annualized
-            const maxIterations = 100;
-            const tolerance = 0.0001;
-
-            for (let i = 0; i < maxIterations; i++) {
-                let fValue = -finalValue;
-                let fDerivative = 0;
-
-                flowsWithTime.forEach(f => {
-                    const compounded = f.amount * Math.pow(1 + rate, f.years);
-                    fValue += compounded;
-                    fDerivative += f.amount * f.years * Math.pow(1 + rate, f.years - 1);
-                });
-
-                const newRate = rate - fValue / fDerivative;
-
-                if (Math.abs(newRate - rate) < tolerance) {
-                    return newRate * 100; // Return as percentage
-                }
-
-                rate = newRate;
-            }
-
-            return rate * 100; // Return as percentage even if not fully converged
-        }
-
         // Calculate Time-Weighted Return using exact daily valuation
         function calculateTWR(dailyValues, cashFlows) {
             // Build a map of cash flow dates
@@ -1639,13 +1590,11 @@
             const years = (endDate - startDate) / (365.25 * 24 * 60 * 60 * 1000);
             const annualizedTWR = years > 0 ? (Math.pow(1 + modeledTWR / 100, 1 / years) - 1) * 100 : modeledTWR;
 
-            // Calculate IRR and TWR for actual portfolio (if provided)
+            // Calculate IRR for actual portfolio (if provided)
             let actualIRR = null;
-            let actualTWR = null;
             let actualGainLoss = null;
             if (actualValue > 0) {
                 actualIRR = calculateIRR(cashFlows, actualValue, sellDate);
-                actualTWR = calculateApproximateTWR(cashFlows, actualValue, sellDate);
                 actualGainLoss = actualValue - totalInvested;
             }
 
@@ -1666,8 +1615,7 @@
                 actual: {
                     finalValue: actualValue,
                     gainLoss: actualGainLoss,
-                    irr: actualIRR,
-                    twr: actualTWR
+                    irr: actualIRR
                 }
             };
         }
@@ -1708,7 +1656,7 @@
                     <td class="${actualReturnClass}">${formatCurrency(results.actual.finalValue)}</td>
                     <td class="${actualReturnClass}">${formatCurrency(results.actual.gainLoss)}</td>
                     <td class="${actualReturnClass}">${formatPercent(results.actual.irr)}</td>
-                    <td class="${actualReturnClass}">${formatPercent(results.actual.twr)}*</td>
+                    <td class="text-secondary">—</td>
                 `;
                 tbody.appendChild(actualRow);
 
@@ -1716,9 +1664,7 @@
                 const diffValue = results.actual.finalValue - results.modeled.finalValue;
                 const diffGainLoss = results.actual.gainLoss - results.modeled.gainLoss;
                 const diffIRR = results.actual.irr - results.modeled.irr;
-                const diffTWR = results.actual.twr - results.modeled.twr;
                 const diffClass = diffValue >= 0 ? 'positive' : 'negative';
-                const diffTWRClass = diffTWR >= 0 ? 'positive' : 'negative';
 
                 const diffRow = document.createElement('tr');
                 diffRow.innerHTML = `
@@ -1726,7 +1672,7 @@
                     <td class="${diffClass}" style="font-weight: 600;">${formatCurrency(diffValue)}</td>
                     <td class="${diffClass}" style="font-weight: 600;">${formatCurrency(diffGainLoss)}</td>
                     <td class="${diffClass}" style="font-weight: 600;">${formatPercent(diffIRR)}</td>
-                    <td class="${diffTWRClass}" style="font-weight: 600;">${formatPercent(diffTWR)}*</td>
+                    <td class="text-secondary">—</td>
                 `;
                 tbody.appendChild(diffRow);
             }
