@@ -662,7 +662,7 @@
             <div class="input-row" style="margin-top: 16px;">
                 <div class="input-group full-width">
                     <label for="cashFlows">Cash Flows (Paste from Google Sheets)</label>
-                    <textarea id="cashFlows" placeholder="Date&#9;Amount&#10;10/21/2021&#9;-1,430,000&#10;4/7/2022&#9;-12,000&#10;1/6/2023&#9;-6,500"></textarea>
+                    <textarea id="cashFlows" placeholder="Date&#9;Amount&#10;10/21/2021&#9;1,430,000&#10;4/7/2022&#9;12,000&#10;1/6/2023&#9;6,500"></textarea>
                 </div>
             </div>
             <div class="input-row" style="margin-top: 16px;">
@@ -1353,7 +1353,7 @@
                 const date = new Date(year, month - 1, day);
                 const isoDate = formatDateForInput(date);
 
-                // Parse amount (remove commas, dollar signs, and handle negative)
+                // Parse amount (remove commas, dollar signs, use absolute value for safety)
                 const amount = Math.abs(parseFloat(amountStr.replace(/[$,]/g, '')));
 
                 if (isNaN(amount)) {
