@@ -708,8 +708,8 @@
                             <th>Portfolio</th>
                             <th>Final Value</th>
                             <th>Gain/Loss</th>
-                            <th>IRR %</th>
-                            <th>TWR %</th>
+                            <th>IRR % (Ann.)</th>
+                            <th>TWR % (Ann.)</th>
                         </tr>
                     </thead>
                     <tbody id="benchmarkTableBody">
@@ -1584,6 +1584,12 @@
             // Calculate TWR for modeled portfolio
             const modeledTWR = calculateTWR(dailyValues, cashFlows);
 
+            // Annualize TWR
+            const startDate = new Date(cashFlows[0].date);
+            const endDate = new Date(sellDate);
+            const years = (endDate - startDate) / (365.25 * 24 * 60 * 60 * 1000);
+            const annualizedTWR = years > 0 ? (Math.pow(1 + modeledTWR / 100, 1 / years) - 1) * 100 : modeledTWR;
+
             // Calculate IRR for actual portfolio (if provided)
             let actualIRR = null;
             let actualGainLoss = null;
@@ -1604,7 +1610,7 @@
                     finalValue,
                     gainLoss,
                     irr: modeledIRR,
-                    twr: modeledTWR
+                    twr: annualizedTWR
                 },
                 actual: {
                     finalValue: actualValue,
