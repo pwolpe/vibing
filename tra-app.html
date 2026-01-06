@@ -769,12 +769,35 @@
         let chartInstance = null;
         let benchmarkChartInstance = null;
 
-        // Set default dates (1 year ago to today)
-        const today = new Date();
-        const oneYearAgo = new Date(today);
+        // Get previous business day
+        function getPreviousBusinessDay() {
+            const date = new Date();
+            const dayOfWeek = date.getDay();
+
+            // Go back to previous business day
+            // If Monday (1), go back 3 days to Friday
+            // If Sunday (0), go back 2 days to Friday
+            // If Saturday (6), go back 1 day to Friday
+            // Otherwise go back 1 day
+            if (dayOfWeek === 1) {
+                date.setDate(date.getDate() - 3);
+            } else if (dayOfWeek === 0) {
+                date.setDate(date.getDate() - 2);
+            } else if (dayOfWeek === 6) {
+                date.setDate(date.getDate() - 1);
+            } else {
+                date.setDate(date.getDate() - 1);
+            }
+
+            return date;
+        }
+
+        // Set default dates (1 year ago to previous business day)
+        const previousBusinessDay = getPreviousBusinessDay();
+        const oneYearAgo = new Date(previousBusinessDay);
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-        endDateInput.value = formatDateForInput(today);
+        endDateInput.value = formatDateForInput(previousBusinessDay);
         startDateInput.value = formatDateForInput(oneYearAgo);
 
         // Event Listeners
@@ -1271,21 +1294,6 @@
         const benchmarkResultsPanel = document.getElementById('benchmarkResultsPanel');
 
         // Set default sell date to previous business day
-        function getPreviousBusinessDay() {
-            const date = new Date();
-            let dayOfWeek = date.getDay();
-
-            // If Sunday (0), go back 2 days. If Saturday (6), go back 1 day. Otherwise today.
-            if (dayOfWeek === 0) {
-                date.setDate(date.getDate() - 2);
-            } else if (dayOfWeek === 6) {
-                date.setDate(date.getDate() - 1);
-            }
-            // If it's Monday and today is early, could go back to Friday, but let's keep it simple
-
-            return date;
-        }
-
         benchmarkSellDateInput.value = formatDateForInput(getPreviousBusinessDay());
 
         // Event Listeners
