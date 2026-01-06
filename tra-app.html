@@ -715,6 +715,9 @@
                     <tbody id="benchmarkTableBody">
                     </tbody>
                 </table>
+                <div id="twrFootnote" style="display: none; margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-style: italic;">
+                    * Simple annualized return: the constant growth rate that would grow total contributions into the ending value, ignoring contribution timing.
+                </div>
             </div>
 
             <div class="chart-section">
@@ -1459,6 +1462,22 @@
             return (product - 1) * 100;
         }
 
+        // Calculate approximate TWR for actual portfolio using simple annualized return
+        // This ignores the timing of cash flows and calculates what constant growth rate
+        // would grow the total contributions into the ending value
+        function calculateApproximateTWR(cashFlows, finalValue, endDate) {
+            const totalInvested = cashFlows.reduce((sum, cf) => sum + cf.amount, 0);
+            const startDate = new Date(cashFlows[0].date);
+            const end = new Date(endDate);
+            const years = (end - startDate) / (365.25 * 24 * 60 * 60 * 1000);
+
+            if (years <= 0 || totalInvested <= 0) return 0;
+
+            // r = (finalValue / totalInvested)^(1/years) - 1
+            const rate = Math.pow(finalValue / totalInvested, 1 / years) - 1;
+            return rate * 100;
+        }
+
         // Main benchmark analysis function
         async function runBenchmarkAnalysis() {
             const ticker = benchmarkTickerInput.value.trim().toUpperCase();
@@ -1599,11 +1618,13 @@
             const years = (endDate - startDate) / (365.25 * 24 * 60 * 60 * 1000);
             const annualizedTWR = years > 0 ? (Math.pow(1 + modeledTWR / 100, 1 / years) - 1) * 100 : modeledTWR;
 
-            // Calculate IRR for actual portfolio (if provided)
+            // Calculate IRR and approximate TWR for actual portfolio (if provided)
             let actualIRR = null;
+            let actualTWR = null;
             let actualGainLoss = null;
             if (actualValue > 0) {
                 actualIRR = calculateIRR(cashFlows, actualValue, sellDate);
+                actualTWR = calculateApproximateTWR(cashFlows, actualValue, sellDate);
                 actualGainLoss = actualValue - totalInvested;
             }
 
@@ -1624,7 +1645,8 @@
                 actual: {
                     finalValue: actualValue,
                     gainLoss: actualGainLoss,
-                    irr: actualIRR
+                    irr: actualIRR,
+                    twr: actualTWR
                 }
             };
         }
@@ -1643,6 +1665,10 @@
         function updateBenchmarkTable(results, totalInvested, actualValue) {
             const tbody = document.getElementById('benchmarkTableBody');
             tbody.innerHTML = '';
+
+            // Show/hide footnote based on whether actual value is provided
+            const footnote = document.getElementById('twrFootnote');
+            footnote.style.display = actualValue > 0 ? 'block' : 'none';
 
             // Modeled portfolio row
             const modeledRow = document.createElement('tr');
@@ -1665,7 +1691,7 @@
                     <td class="${actualReturnClass}">${formatCurrency(results.actual.finalValue)}</td>
                     <td class="${actualReturnClass}">${formatCurrency(results.actual.gainLoss)}</td>
                     <td class="${actualReturnClass}">${formatPercent(results.actual.irr)}</td>
-                    <td class="text-secondary">—</td>
+                    <td class="${actualReturnClass}">${formatPercent(results.actual.twr)}*</td>
                 `;
                 tbody.appendChild(actualRow);
 
@@ -1673,6 +1699,7 @@
                 const diffValue = results.actual.finalValue - results.modeled.finalValue;
                 const diffGainLoss = results.actual.gainLoss - results.modeled.gainLoss;
                 const diffIRR = results.actual.irr - results.modeled.irr;
+                const diffTWR = results.actual.twr - results.modeled.twr;
                 const diffClass = diffValue >= 0 ? 'positive' : 'negative';
 
                 const diffRow = document.createElement('tr');
@@ -1681,7 +1708,7 @@
                     <td class="${diffClass}" style="font-weight: 600;">${formatCurrency(diffValue)}</td>
                     <td class="${diffClass}" style="font-weight: 600;">${formatCurrency(diffGainLoss)}</td>
                     <td class="${diffClass}" style="font-weight: 600;">${formatPercent(diffIRR)}</td>
-                    <td class="text-secondary">—</td>
+                    <td class="${diffClass}" style="font-weight: 600;">${formatPercent(diffTWR)}</td>
                 `;
                 tbody.appendChild(diffRow);
             }
