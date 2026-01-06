@@ -1441,10 +1441,9 @@
                         const subReturn = (day.value - previousValue) / previousValue;
                         product *= (1 + subReturn);
                     }
-                } else if (i > 0 && previousValue > 0) {
-                    // Update previous value for tracking
-                    previousValue = day.value;
                 }
+                // Note: previousValue should only be updated on cash flow dates,
+                // not on intermediate days, to correctly calculate TWR sub-periods
             }
 
             // TWR = (product - 1) * 100
