@@ -719,7 +719,7 @@
 
             <div class="chart-section">
                 <div class="chart-header">
-                    <span class="chart-title">Portfolio Growth Over Time</span>
+                    <span class="chart-title">Performance Attribution</span>
                 </div>
                 <div class="chart-container">
                     <canvas id="benchmarkChart"></canvas>
@@ -1686,7 +1686,7 @@
             }
         }
 
-        // Update benchmark chart
+        // Update benchmark chart (waterfall chart showing attribution)
         function updateBenchmarkChart(results) {
             const ctx = document.getElementById('benchmarkChart').getContext('2d');
 
@@ -1695,33 +1695,58 @@
                 benchmarkChartInstance.destroy();
             }
 
-            const { dailyValues } = results;
+            // Calculate values for waterfall
+            const totalInvested = results.totalInvested;
+            const benchmarkGainLoss = results.modeled.gainLoss;
+            const alpha = results.actual.finalValue > 0 ? (results.actual.finalValue - results.modeled.finalValue) : 0;
+            const actualFinalValue = results.actual.finalValue > 0 ? results.actual.finalValue : results.modeled.finalValue;
+
+            // Create waterfall chart data
+            // Bar 1: Capital Invested (starts at 0)
+            // Bar 2: Benchmark Return (stacked on top)
+            // Bar 3: Alpha (stacked on top)
+
+            const labels = ['Capital Invested', 'Benchmark Return', 'Alpha'];
+            const data = [];
+
+            // Show only when actual value is provided
+            if (results.actual.finalValue > 0) {
+                data.push(
+                    { label: 'Capital Invested', value: totalInvested, base: 0 },
+                    { label: 'Benchmark Return', value: benchmarkGainLoss, base: totalInvested },
+                    { label: 'Alpha', value: alpha, base: totalInvested + benchmarkGainLoss }
+                );
+            } else {
+                // If no actual value, just show capital invested and benchmark return
+                data.push(
+                    { label: 'Capital Invested', value: totalInvested, base: 0 },
+                    { label: 'Benchmark Return', value: benchmarkGainLoss, base: totalInvested }
+                );
+            }
 
             benchmarkChartInstance = new Chart(ctx, {
-                type: 'line',
+                type: 'bar',
                 data: {
-                    labels: dailyValues.map(d => d.date),
-                    datasets: [
-                        {
-                            label: 'Portfolio Value',
-                            data: dailyValues.map(d => d.value),
-                            borderColor: '#ff8c00',
-                            backgroundColor: 'rgba(255, 140, 0, 0.1)',
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
-                            fill: true,
-                            tension: 0.1
-                        }
-                    ]
+                    labels: data.map(d => d.label),
+                    datasets: [{
+                        data: data.map(d => [d.base, d.base + d.value]),
+                        backgroundColor: data.map((d, i) => {
+                            if (i === 0) return 'rgba(77, 166, 255, 0.8)'; // Blue for capital
+                            if (i === 1) return d.value >= 0 ? 'rgba(0, 200, 83, 0.8)' : 'rgba(255, 61, 61, 0.8)'; // Green/red for benchmark
+                            return d.value >= 0 ? 'rgba(255, 215, 64, 0.8)' : 'rgba(255, 140, 0, 0.8)'; // Yellow/orange for alpha
+                        }),
+                        borderColor: data.map((d, i) => {
+                            if (i === 0) return '#4da6ff';
+                            if (i === 1) return d.value >= 0 ? '#00c853' : '#ff3d3d';
+                            return d.value >= 0 ? '#ffd740' : '#ff8c00';
+                        }),
+                        borderWidth: 2
+                    }]
                 },
                 options: {
+                    indexAxis: 'x',
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
                     plugins: {
                         legend: {
                             display: false
@@ -1734,7 +1759,7 @@
                             borderWidth: 1,
                             titleFont: {
                                 family: "'JetBrains Mono', monospace",
-                                size: 11
+                                size: 12
                             },
                             bodyFont: {
                                 family: "'JetBrains Mono', monospace",
@@ -1742,13 +1767,12 @@
                             },
                             padding: 12,
                             callbacks: {
-                                title: (items) => formatDateForDisplay(items[0].label),
                                 label: (context) => {
-                                    const value = context.raw;
-                                    const shares = dailyValues[context.dataIndex].shares;
+                                    const item = data[context.dataIndex];
+                                    const cumulative = item.base + item.value;
                                     return [
-                                        `Value: ${formatCurrency(value)}`,
-                                        `Shares: ${shares.toFixed(4)}`
+                                        `${item.label}: ${formatCurrency(item.value)}`,
+                                        `Cumulative: ${formatCurrency(cumulative)}`
                                     ];
                                 }
                             }
@@ -1756,26 +1780,19 @@
                     },
                     scales: {
                         x: {
-                            type: 'time',
-                            time: {
-                                unit: 'month',
-                                displayFormats: {
-                                    month: 'MMM yyyy'
-                                }
-                            },
                             grid: {
-                                color: '#2a2a2a',
-                                drawBorder: false
+                                display: false
                             },
                             ticks: {
                                 color: '#888',
                                 font: {
                                     family: "'JetBrains Mono', monospace",
-                                    size: 10
+                                    size: 11
                                 }
                             }
                         },
                         y: {
+                            beginAtZero: true,
                             grid: {
                                 color: '#2a2a2a',
                                 drawBorder: false
