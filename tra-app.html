@@ -1320,6 +1320,46 @@
             // Get dividend dates for annotations
             const dividendDates = results.dividends.map(d => d.date);
 
+            // Find min and max values for annotations
+            const values = totalReturn.map(d => d.value);
+            const minValue = Math.min(...values);
+            const maxValue = Math.max(...values);
+            const minIndex = values.indexOf(minValue);
+            const maxIndex = values.indexOf(maxValue);
+
+            // Create pointRadius array - show dots only at min/max
+            const pointRadii = values.map((_, i) => (i === minIndex || i === maxIndex) ? 6 : 0);
+            const pointBgColors = values.map((_, i) => (i === minIndex || i === maxIndex) ? '#e8e8e8' : 'transparent');
+
+            // Custom plugin for min/max labels
+            const minMaxLabelsPlugin = {
+                id: 'minMaxLabels',
+                afterDatasetsDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const dataset = chart.data.datasets[0];
+                    const meta = chart.getDatasetMeta(0);
+
+                    ctx.save();
+                    ctx.font = "11px 'JetBrains Mono', monospace";
+                    ctx.fillStyle = '#e8e8e8';
+                    ctx.textAlign = 'center';
+
+                    // Draw max label
+                    const maxPoint = meta.data[maxIndex];
+                    if (maxPoint) {
+                        ctx.fillText(`Hi: ${maxValue.toFixed(4)}%`, maxPoint.x, maxPoint.y - 12);
+                    }
+
+                    // Draw min label
+                    const minPoint = meta.data[minIndex];
+                    if (minPoint) {
+                        ctx.fillText(`Low: ${minValue.toFixed(4)}%`, minPoint.x, minPoint.y + 20);
+                    }
+
+                    ctx.restore();
+                }
+            };
+
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1327,10 +1367,12 @@
                     datasets: [
                         {
                             label: 'Total Return %',
-                            data: totalReturn.map(d => d.value),
+                            data: values,
                             borderColor: '#e8e8e8',
                             borderWidth: 2,
-                            pointRadius: 0,
+                            pointRadius: pointRadii,
+                            pointBackgroundColor: pointBgColors,
+                            pointBorderColor: pointBgColors,
                             pointHoverRadius: 4,
                             fill: 'origin',
                             tension: 0.1,
@@ -1341,6 +1383,7 @@
                         }
                     ]
                 },
+                plugins: [minMaxLabelsPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
