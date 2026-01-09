@@ -1118,6 +1118,14 @@
             });
         });
 
+        // Clear active button when dates are manually changed
+        startDateInput.addEventListener('change', () => {
+            timePeriodBtns.forEach(b => b.classList.remove('active'));
+        });
+        endDateInput.addEventListener('change', () => {
+            timePeriodBtns.forEach(b => b.classList.remove('active'));
+        });
+
         // Format date for input element (YYYY-MM-DD)
         function formatDateForInput(date) {
             return date.toISOString().split('T')[0];
