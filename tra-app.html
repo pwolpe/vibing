@@ -1328,6 +1328,11 @@
             // Get dividend dates for annotations
             const dividendDates = results.dividends.map(d => d.date);
 
+            // Determine return color based on final value
+            const finalReturn = totalReturn[totalReturn.length - 1].value;
+            const returnBorderColor = finalReturn >= 0 ? '#00c853' : '#ff3d3d';
+            const returnBgColor = finalReturn >= 0 ? 'rgba(0, 200, 83, 0.15)' : 'rgba(255, 61, 61, 0.15)';
+
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1359,8 +1364,8 @@
                         {
                             label: 'Total Return %',
                             data: totalReturn.map(d => d.value),
-                            borderColor: '#00c853',
-                            backgroundColor: 'rgba(0, 200, 83, 0.15)',
+                            borderColor: returnBorderColor,
+                            backgroundColor: returnBgColor,
                             borderWidth: 1,
                             pointRadius: 0,
                             fill: true,
@@ -1455,7 +1460,7 @@
                                 display: false
                             },
                             ticks: {
-                                color: '#00c853',
+                                color: returnBorderColor,
                                 font: {
                                     family: "'JetBrains Mono', monospace",
                                     size: 10
