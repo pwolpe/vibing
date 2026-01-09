@@ -1117,7 +1117,7 @@
         function calculateAnnualizedReturn(totalReturn, startDate, endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
-            const years = (end - start) / (365.25 * 24 * 60 * 60 * 1000);
+            const years = (end - start) / (365 * 24 * 60 * 60 * 1000);
             
             if (years <= 0) return 0;
             
@@ -1626,7 +1626,7 @@
                 let dnpv = 0;
 
                 flowsWithDays.forEach(f => {
-                    const years = f.days / 365.25;
+                    const years = f.days / 365;
                     const discount = Math.pow(1 + rate, years);
                     npv += f.amount / discount;
                     dnpv -= f.amount * years / discount / (1 + rate);
@@ -1692,7 +1692,7 @@
             const totalInvested = cashFlows.reduce((sum, cf) => sum + cf.amount, 0);
             const startDate = new Date(cashFlows[0].date);
             const end = new Date(endDate);
-            const years = (end - startDate) / (365.25 * 24 * 60 * 60 * 1000);
+            const years = (end - startDate) / (365 * 24 * 60 * 60 * 1000);
 
             if (years <= 0 || totalInvested <= 0) return 0;
 
@@ -1838,7 +1838,7 @@
             // Annualize TWR
             const startDate = new Date(cashFlows[0].date);
             const endDate = new Date(sellDate);
-            const years = (endDate - startDate) / (365.25 * 24 * 60 * 60 * 1000);
+            const years = (endDate - startDate) / (365 * 24 * 60 * 60 * 1000);
             const annualizedTWR = years > 0 ? (Math.pow(1 + modeledTWR / 100, 1 / years) - 1) * 100 : modeledTWR;
 
             // Calculate IRR and approximate TWR for actual portfolio (if provided)
