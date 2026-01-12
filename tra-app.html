@@ -1452,73 +1452,52 @@
             }
         }
 
-        // Calculate returns
+        // Calculate returns using adjusted close prices
+        // adjClose from Tiingo is adjusted for splits AND dividends (total return)
         function calculateReturns(priceData, initialShares) {
-            const startPrice = priceData[0].adjClose;
-            const endPrice = priceData[priceData.length - 1].adjClose;
             const startDate = priceData[0].date.split('T')[0];
             const endDate = priceData[priceData.length - 1].date.split('T')[0];
-            
-            // Get raw (unadjusted) prices for simple price appreciation
+
+            // Adjusted prices (split + dividend adjusted) for total return
+            const startPriceAdj = priceData[0].adjClose;
+            const endPriceAdj = priceData[priceData.length - 1].adjClose;
+
+            // Raw prices for simple price appreciation (current market prices)
             const startPriceRaw = priceData[0].close;
             const endPriceRaw = priceData[priceData.length - 1].close;
 
-            // Extract dividends
+            // Extract dividends for display only (not used in calculations)
             const dividends = priceData
                 .filter(d => d.divCash && d.divCash > 0)
                 .map(d => ({
                     date: d.date.split('T')[0],
-                    amount: d.divCash,
-                    price: d.close // Price on ex-date for reinvestment
+                    amount: d.divCash
                 }));
 
-            // Initial investment value
+            // Sum of dividends for display
+            const totalDividendsPaid = dividends.reduce((sum, d) => sum + d.amount, 0) * initialShares;
+
+            // Initial investment at current (raw) start price
             const initialInvestment = initialShares * startPriceRaw;
 
-            // ===== Strategy 1: Simple Price Appreciation =====
+            // ===== Strategy 1: Simple Price Appreciation (raw prices) =====
             const simplePriceReturn = ((endPriceRaw - startPriceRaw) / startPriceRaw) * 100;
             const simpleGainLoss = (endPriceRaw - startPriceRaw) * initialShares;
             const simpleAnnualized = calculateAnnualizedReturn(simplePriceReturn, startDate, endDate);
 
-            // ===== Strategy 2: Dividends Reinvested =====
-            let currentShares = initialShares;
-            let totalDividendsPaid = 0;
-            
-            // Build daily series for charting
-            const dailyPriceOnly = [];
-            const dailyDividendAdjusted = [];
-            const dailyTotalReturn = [];
-            
-            priceData.forEach((day, index) => {
-                const date = day.date.split('T')[0];
-                const price = day.close;
-                
-                // Check for dividend on this day
-                if (day.divCash && day.divCash > 0) {
-                    const dividendAmount = day.divCash * currentShares;
-                    totalDividendsPaid += dividendAmount;
-                    
-                    // Reinvest dividend at ex-date closing price
-                    const newShares = dividendAmount / price;
-                    currentShares += newShares;
-                }
-                
-                // Calculate daily values
-                const priceOnlyValue = initialShares * price;
-                const dividendAdjustedValue = currentShares * price;
-                const totalReturnPct = ((dividendAdjustedValue - initialInvestment) / initialInvestment) * 100;
-                
-                dailyPriceOnly.push({ date, value: priceOnlyValue });
-                dailyDividendAdjusted.push({ date, value: dividendAdjustedValue });
-                dailyTotalReturn.push({ date, value: totalReturnPct });
-            });
+            // ===== Strategy 2: Total Return using adjClose =====
+            // adjClose already accounts for splits and dividend reinvestment
+            const totalReturn = ((endPriceAdj - startPriceAdj) / startPriceAdj) * 100;
+            const totalReturnAnnualized = calculateAnnualizedReturn(totalReturn, startDate, endDate);
+            // Calculate gain/loss: scale by ratio of adjusted prices
+            const finalValue = initialInvestment * (endPriceAdj / startPriceAdj);
+            const totalGainLoss = finalValue - initialInvestment;
 
-            // Final dividend reinvested calculations
-            const finalValueWithDividends = currentShares * endPriceRaw;
-            const dividendReinvestedReturn = ((finalValueWithDividends - initialInvestment) / initialInvestment) * 100;
-            const dividendReinvestedGainLoss = finalValueWithDividends - initialInvestment;
-            const dividendReinvestedAnnualized = calculateAnnualizedReturn(dividendReinvestedReturn, startDate, endDate);
-            const additionalSharesPurchased = currentShares - initialShares;
+            // Build daily series for charting using adjClose
+            const dailyTotalReturn = priceData.map(day => ({
+                date: day.date.split('T')[0],
+                value: ((day.adjClose - startPriceAdj) / startPriceAdj) * 100
+            }));
 
             return {
                 startDate,
@@ -1538,16 +1517,14 @@
                         detail: null
                     },
                     reinvested: {
-                        name: 'Dividends Reinvested in Security',
-                        totalReturn: dividendReinvestedReturn,
-                        annualized: dividendReinvestedAnnualized,
-                        gainLoss: dividendReinvestedGainLoss,
-                        detail: `Shares Purchased: ${additionalSharesPurchased.toFixed(2)}`
+                        name: 'Total Return (Adj. Close)',
+                        totalReturn: totalReturn,
+                        annualized: totalReturnAnnualized,
+                        gainLoss: totalGainLoss,
+                        detail: 'Includes splits & dividends'
                     }
                 },
                 chartData: {
-                    priceOnly: dailyPriceOnly,
-                    dividendAdjusted: dailyDividendAdjusted,
                     totalReturn: dailyTotalReturn
                 }
             };
@@ -1595,7 +1572,7 @@
                 chartInstance.destroy();
             }
 
-            const { priceOnly, dividendAdjusted, totalReturn } = results.chartData;
+            const { totalReturn } = results.chartData;
 
             // Get dividend dates for annotations
             const dividendDates = results.dividends.map(d => d.date);
@@ -1993,67 +1970,92 @@
             }
         }
 
-        // Calculate portfolio performance with multiple purchases
+        // Calculate portfolio performance using adjusted close prices
+        // adjClose handles splits and dividends automatically
         function calculatePortfolioPerformance(priceData, cashFlows, sellDate, actualValue) {
-            // Create a map of cash flows by date
-            const cashFlowMap = {};
-            cashFlows.forEach(cf => {
-                cashFlowMap[cf.date] = cf.amount;
+            // Create maps for price lookup by date
+            const priceByDate = {};
+            priceData.forEach(day => {
+                const date = day.date.split('T')[0];
+                priceByDate[date] = {
+                    close: day.close,
+                    adjClose: day.adjClose
+                };
             });
 
-            let totalShares = 0;
-            let totalDividendsPaid = 0;
+            // Final adjusted close price
+            const finalDay = priceData[priceData.length - 1];
+            const finalAdjClose = finalDay.adjClose;
+
+            // Process each purchase and calculate its contribution to final value
             const purchases = [];
-            const dividends = [];
-            const dailyValues = [];
+            let finalValue = 0;
 
-            // Process each day
-            priceData.forEach((day, index) => {
-                const date = day.date.split('T')[0];
-                const price = day.close;
+            cashFlows.forEach(cf => {
+                const priceOnDate = priceByDate[cf.date];
+                if (priceOnDate) {
+                    const purchaseAdjClose = priceOnDate.adjClose;
+                    const purchaseClose = priceOnDate.close;
 
-                // Check for purchase on this day
-                if (cashFlowMap[date]) {
-                    const purchaseAmount = cashFlowMap[date];
-                    const sharesPurchased = purchaseAmount / price;
-                    totalShares += sharesPurchased;
+                    // Shares purchased (at raw price for display)
+                    const sharesPurchased = cf.amount / purchaseClose;
+
+                    // Value contribution using adjClose ratio (handles splits + dividends)
+                    const valueContribution = cf.amount * (finalAdjClose / purchaseAdjClose);
+                    finalValue += valueContribution;
 
                     purchases.push({
-                        date,
-                        amount: purchaseAmount,
-                        price,
-                        shares: sharesPurchased
+                        date: cf.date,
+                        amount: cf.amount,
+                        price: purchaseClose,
+                        shares: sharesPurchased,
+                        adjClose: purchaseAdjClose
                     });
                 }
+            });
 
-                // Check for dividend on this day
-                if (day.divCash && day.divCash > 0) {
-                    const dividendAmount = day.divCash * totalShares;
-                    totalDividendsPaid += dividendAmount;
+            // Extract dividends for display only (not used in calculations since adjClose handles it)
+            const dividends = priceData
+                .filter(d => d.divCash && d.divCash > 0)
+                .map(d => ({
+                    date: d.date.split('T')[0],
+                    amount: d.divCash,
+                    totalPayout: d.divCash // Per share amount for display
+                }));
 
-                    // Reinvest dividend
-                    const newShares = dividendAmount / price;
-                    totalShares += newShares;
+            // Build daily values using adjClose ratios
+            const dailyValues = [];
+            let runningInvestment = 0;
+            const purchasesByDate = {};
+            cashFlows.forEach(cf => {
+                purchasesByDate[cf.date] = cf;
+            });
 
-                    dividends.push({
-                        date,
-                        amount: day.divCash,
-                        totalPayout: dividendAmount
-                    });
+            priceData.forEach(day => {
+                const date = day.date.split('T')[0];
+
+                // Add any purchase on this date
+                if (purchasesByDate[date]) {
+                    runningInvestment += purchasesByDate[date].amount;
                 }
 
-                // Track daily portfolio value
-                const portfolioValue = totalShares * price;
+                // Calculate current value of all prior purchases using adjClose ratios
+                let currentValue = 0;
+                purchases.forEach(p => {
+                    if (p.date <= date) {
+                        currentValue += p.amount * (day.adjClose / p.adjClose);
+                    }
+                });
+
                 dailyValues.push({
                     date,
-                    value: portfolioValue,
-                    shares: totalShares
+                    value: currentValue,
+                    invested: runningInvestment
                 });
             });
 
-            // Final portfolio value
-            const finalValue = dailyValues[dailyValues.length - 1].value;
             const totalInvested = cashFlows.reduce((sum, cf) => sum + cf.amount, 0);
+            const totalDividendsPaid = dividends.reduce((sum, d) => sum + d.amount, 0);
             const gainLoss = finalValue - totalInvested;
 
             // Calculate IRR for modeled portfolio
@@ -2420,39 +2422,24 @@
             });
         }
 
-        // Calculate total return for a single stock (dividends reinvested)
+        // Calculate total return for a single stock using adjusted close
+        // adjClose already accounts for splits and dividends
         function calculateStockReturn(priceData) {
             if (!priceData || priceData.length < 2) return null;
 
             const startDate = priceData[0].date.split('T')[0];
             const endDate = priceData[priceData.length - 1].date.split('T')[0];
-            const startPrice = priceData[0].close;
+            const startPriceAdj = priceData[0].adjClose;
+            const endPriceAdj = priceData[priceData.length - 1].adjClose;
 
-            // Track shares with dividend reinvestment
-            let shares = 1; // Start with 1 share for normalization
-            const dailyReturns = [];
+            // Build daily returns using adjClose (normalized to 0% at start)
+            const dailyReturns = priceData.map(day => ({
+                date: day.date.split('T')[0],
+                value: ((day.adjClose - startPriceAdj) / startPriceAdj) * 100
+            }));
 
-            priceData.forEach((day, index) => {
-                const date = day.date.split('T')[0];
-                const price = day.close;
-
-                // Check for dividend
-                if (day.divCash && day.divCash > 0) {
-                    const dividendAmount = day.divCash * shares;
-                    const newShares = dividendAmount / price;
-                    shares += newShares;
-                }
-
-                // Calculate return as percentage from start
-                const currentValue = shares * price;
-                const initialValue = 1 * startPrice;
-                const returnPct = ((currentValue - initialValue) / initialValue) * 100;
-
-                dailyReturns.push({ date, value: returnPct });
-            });
-
-            const finalValue = shares * priceData[priceData.length - 1].close;
-            const totalReturn = ((finalValue - startPrice) / startPrice) * 100;
+            // Total return from adjusted prices
+            const totalReturn = ((endPriceAdj - startPriceAdj) / startPriceAdj) * 100;
             const annualized = calculateAnnualizedReturn(totalReturn, startDate, endDate);
 
             return {
