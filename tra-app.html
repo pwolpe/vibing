@@ -667,6 +667,102 @@
                 flex-wrap: wrap;
             }
         }
+
+        /* Stock Comparison Tab Styles */
+        .ticker-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .ticker-row-item {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .ticker-row-item .input-group {
+            flex: 0 0 auto;
+        }
+
+        .ticker-result {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 100px;
+        }
+
+        .ticker-result-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ticker-result-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 0;
+        }
+
+        .ticker-color-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .btn-remove-ticker {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-remove-ticker:hover:not(:disabled) {
+            background: rgba(255, 61, 61, 0.1);
+            color: var(--accent-red);
+            border-color: var(--accent-red);
+        }
+
+        .btn-remove-ticker:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .btn-add-ticker {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 10px 20px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-add-ticker:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }
+
     </style>
 </head>
 <body>
@@ -700,8 +796,9 @@
         </header>
 
         <div class="tabs">
-            <button class="tab active" data-tab="simple">Simple Analysis</button>
-            <button class="tab" data-tab="benchmark">Portfolio Benchmark</button>
+            <button class="tab active" data-tab="simple">Single Stock</button>
+            <button class="tab" data-tab="comparison">Multiple Stocks</button>
+            <button class="tab" data-tab="benchmark">IRR</button>
         </div>
 
         <!-- Simple Analysis Tab -->
@@ -806,6 +903,79 @@
         </div>
         </div>
         <!-- End Simple Analysis Tab -->
+
+        <!-- Stock Comparison Tab -->
+        <div class="tab-content" id="comparison-tab">
+        <div class="input-panel">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="comparisonStartDate">Start Date</label>
+                    <input type="date" id="comparisonStartDate">
+                </div>
+                <div class="input-group">
+                    <label for="comparisonEndDate">End Date</label>
+                    <input type="date" id="comparisonEndDate">
+                </div>
+            </div>
+            <div class="ticker-rows" id="tickerRows">
+                <div class="ticker-row-item">
+                    <button class="btn-remove-ticker" title="Remove ticker" disabled>×</button>
+                    <div class="input-group ticker">
+                        <label>Ticker</label>
+                        <input type="text" class="comparison-ticker" placeholder="VTI" maxlength="10">
+                    </div>
+                    <div class="ticker-result" style="display: none;">
+                        <span class="ticker-result-label">Total Return</span>
+                        <span class="ticker-result-value total-return">—</span>
+                    </div>
+                    <div class="ticker-result" style="display: none;">
+                        <span class="ticker-result-label">Annual Eq.</span>
+                        <span class="ticker-result-value annual-return">—</span>
+                    </div>
+                    <span class="ticker-color-indicator"></span>
+                </div>
+                <div class="ticker-row-item">
+                    <button class="btn-remove-ticker" title="Remove ticker">×</button>
+                    <div class="input-group ticker">
+                        <label>Ticker</label>
+                        <input type="text" class="comparison-ticker" placeholder="VT" maxlength="10">
+                    </div>
+                    <div class="ticker-result" style="display: none;">
+                        <span class="ticker-result-label">Total Return</span>
+                        <span class="ticker-result-value total-return">—</span>
+                    </div>
+                    <div class="ticker-result" style="display: none;">
+                        <span class="ticker-result-label">Annual Eq.</span>
+                        <span class="ticker-result-value annual-return">—</span>
+                    </div>
+                    <span class="ticker-color-indicator"></span>
+                </div>
+            </div>
+            <div class="input-row" style="margin-top: 16px;">
+                <button class="btn-add-ticker" id="addTickerBtn">+ Add Ticker</button>
+                <button class="btn-analyze" id="comparisonAnalyzeBtn">Analyze</button>
+            </div>
+        </div>
+
+        <div class="error-message" id="comparisonErrorMessage"></div>
+
+        <div class="loading" id="comparisonLoading">
+            <div class="loading-spinner"></div>
+            <span>Fetching data...</span>
+        </div>
+
+        <div class="results-panel" id="comparisonResultsPanel">
+            <div class="chart-section">
+                <div class="chart-header">
+                    <span class="chart-title">Comparative Performance</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- End Stock Comparison Tab -->
 
         <!-- Portfolio Benchmark Tab -->
         <div class="tab-content" id="benchmark-tab">
@@ -1006,7 +1176,7 @@
             showApiKeyModal();
         }
 
-        // DOM Elements
+        // DOM Elements - Single Stock tab
         const tickerInput = document.getElementById('ticker');
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
@@ -1015,6 +1185,9 @@
         const loadingEl = document.getElementById('loading');
         const errorEl = document.getElementById('errorMessage');
         const resultsPanel = document.getElementById('resultsPanel');
+
+        // State helpers for Single Stock tab
+        const simpleTab = createTabHelpers(loadingEl, errorEl, resultsPanel);
 
         // Chart instance
         let chartInstance = null;
@@ -1157,22 +1330,39 @@
             return sign + value.toFixed(4) + '%';
         }
 
-        // Show/hide elements
-        function showLoading(show) {
-            loadingEl.classList.toggle('visible', show);
-        }
+        // Shared chart configuration
+        const chartTooltipConfig = {
+            backgroundColor: '#1e1e1e',
+            titleColor: '#e8e8e8',
+            bodyColor: '#e8e8e8',
+            borderColor: '#2a2a2a',
+            borderWidth: 1,
+            titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+            bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+            padding: 12
+        };
 
-        function showError(message) {
-            errorEl.textContent = message;
-            errorEl.classList.add('visible');
-        }
+        const chartGridConfig = {
+            color: '#2a2a2a',
+            drawBorder: false
+        };
 
-        function hideError() {
-            errorEl.classList.remove('visible');
-        }
+        const chartTickFont = {
+            family: "'JetBrains Mono', monospace",
+            size: 10
+        };
 
-        function showResults(show) {
-            resultsPanel.classList.toggle('visible', show);
+        // Factory for tab state helpers (loading, error, results)
+        function createTabHelpers(loadingEl, errorEl, resultsEl) {
+            return {
+                showLoading: (show) => loadingEl.classList.toggle('visible', show),
+                showError: (message) => {
+                    errorEl.textContent = message;
+                    errorEl.classList.add('visible');
+                },
+                hideError: () => errorEl.classList.remove('visible'),
+                showResults: (show) => resultsEl.classList.toggle('visible', show)
+            };
         }
 
         // Fetch price data from Tiingo
@@ -1193,27 +1383,6 @@
             }
             
             return response.json();
-        }
-
-        // Fetch dividend data from Tiingo
-        async function fetchDividendData(ticker, startDate, endDate) {
-            const apiKey = getApiKey();
-            if (!apiKey) {
-                return [];
-            }
-            const url = `https://api.tiingo.com/tiingo/daily/${ticker}/prices?startDate=${startDate}&endDate=${endDate}&token=${apiKey}`;
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                return [];
-            }
-            
-            const data = await response.json();
-            // Extract dividend events (where divCash > 0)
-            return data.filter(d => d.divCash && d.divCash > 0).map(d => ({
-                date: d.date.split('T')[0],
-                amount: d.divCash
-            }));
         }
 
         // Calculate annualized return
@@ -1238,21 +1407,21 @@
 
             // Validation
             if (!ticker) {
-                showError('Please enter a ticker symbol');
+                simpleTab.showError('Please enter a ticker symbol');
                 return;
             }
             if (!startDate || !endDate) {
-                showError('Please select start and end dates');
+                simpleTab.showError('Please select start and end dates');
                 return;
             }
             if (new Date(startDate) >= new Date(endDate)) {
-                showError('Start date must be before end date');
+                simpleTab.showError('Start date must be before end date');
                 return;
             }
 
-            hideError();
-            showResults(false);
-            showLoading(true);
+            simpleTab.hideError();
+            simpleTab.showResults(false);
+            simpleTab.showLoading(true);
             analyzeBtn.disabled = true;
 
             try {
@@ -1271,14 +1440,14 @@
                 updateTable(results);
                 updateChart(priceData, results);
                 updateDividendEvents(results.dividends);
-                
-                showResults(true);
+
+                simpleTab.showResults(true);
 
             } catch (error) {
                 console.error('Analysis error:', error);
-                showError(error.message || 'Failed to fetch data. Please check your API key and ticker.');
+                simpleTab.showError(error.message || 'Failed to fetch data. Please check your API key and ticker.');
             } finally {
-                showLoading(false);
+                simpleTab.showLoading(false);
                 analyzeBtn.disabled = false;
             }
         }
@@ -1503,24 +1672,9 @@
                         intersect: false
                     },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#1e1e1e',
-                            titleColor: '#e8e8e8',
-                            bodyColor: '#e8e8e8',
-                            borderColor: '#2a2a2a',
-                            borderWidth: 1,
-                            titleFont: {
-                                family: "'JetBrains Mono', monospace",
-                                size: 11
-                            },
-                            bodyFont: {
-                                family: "'JetBrains Mono', monospace",
-                                size: 11
-                            },
-                            padding: 12,
+                            ...chartTooltipConfig,
                             callbacks: {
                                 title: (items) => {
                                     const dataIndex = items[0].dataIndex;
@@ -1538,36 +1692,16 @@
                     scales: {
                         x: {
                             type: 'time',
-                            time: {
-                                unit: 'month',
-                                displayFormats: {
-                                    month: 'MMM yyyy'
-                                }
-                            },
-                            grid: {
-                                color: '#2a2a2a',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: '#888',
-                                font: {
-                                    family: "'JetBrains Mono', monospace",
-                                    size: 10
-                                }
-                            }
+                            time: { unit: 'month', displayFormats: { month: 'MMM yyyy' } },
+                            grid: chartGridConfig,
+                            ticks: { color: '#888', font: chartTickFont }
                         },
                         y: {
                             position: 'left',
-                            grid: {
-                                color: '#2a2a2a',
-                                drawBorder: false
-                            },
+                            grid: chartGridConfig,
                             ticks: {
                                 color: ctx => ctx.tick.value >= 0 ? '#00c853' : '#ff3d3d',
-                                font: {
-                                    family: "'JetBrains Mono', monospace",
-                                    size: 10
-                                },
+                                font: chartTickFont,
                                 callback: (value) => value.toFixed(0) + '%'
                             }
                         }
@@ -1628,29 +1762,14 @@
         const benchmarkErrorEl = document.getElementById('benchmarkErrorMessage');
         const benchmarkResultsPanel = document.getElementById('benchmarkResultsPanel');
 
+        // State helpers for benchmark tab
+        const benchmarkTab = createTabHelpers(benchmarkLoadingEl, benchmarkErrorEl, benchmarkResultsPanel);
+
         // Set default sell date to previous business day
         benchmarkSellDateInput.value = formatDateForInput(getPreviousBusinessDay());
 
         // Event Listeners
         benchmarkAnalyzeBtn.addEventListener('click', runBenchmarkAnalysis);
-
-        // Helper functions for benchmark tab
-        function showBenchmarkLoading(show) {
-            benchmarkLoadingEl.classList.toggle('visible', show);
-        }
-
-        function showBenchmarkError(message) {
-            benchmarkErrorEl.textContent = message;
-            benchmarkErrorEl.classList.add('visible');
-        }
-
-        function hideBenchmarkError() {
-            benchmarkErrorEl.classList.remove('visible');
-        }
-
-        function showBenchmarkResults(show) {
-            benchmarkResultsPanel.classList.toggle('visible', show);
-        }
 
         // Parse Google Sheets data
         function parseCashFlows(text) {
@@ -1818,21 +1937,21 @@
 
             // Validation
             if (!ticker) {
-                showBenchmarkError('Please enter a ticker symbol');
+                benchmarkTab.showError('Please enter a ticker symbol');
                 return;
             }
             if (!sellDate) {
-                showBenchmarkError('Please select a sell date');
+                benchmarkTab.showError('Please select a sell date');
                 return;
             }
             if (!cashFlowText) {
-                showBenchmarkError('Please paste cash flow data');
+                benchmarkTab.showError('Please paste cash flow data');
                 return;
             }
 
-            hideBenchmarkError();
-            showBenchmarkResults(false);
-            showBenchmarkLoading(true);
+            benchmarkTab.hideError();
+            benchmarkTab.showResults(false);
+            benchmarkTab.showLoading(true);
             benchmarkAnalyzeBtn.disabled = true;
 
             try {
@@ -1863,13 +1982,13 @@
                 updateBenchmarkDividendEvents(results.dividends);
                 updateBenchmarkPurchasesTable(results.purchases);
 
-                showBenchmarkResults(true);
+                benchmarkTab.showResults(true);
 
             } catch (error) {
                 console.error('Benchmark analysis error:', error);
-                showBenchmarkError(error.message || 'Failed to analyze portfolio. Please check your inputs.');
+                benchmarkTab.showError(error.message || 'Failed to analyze portfolio. Please check your inputs.');
             } finally {
-                showBenchmarkLoading(false);
+                benchmarkTab.showLoading(false);
                 benchmarkAnalyzeBtn.disabled = false;
             }
         }
@@ -2107,24 +2226,9 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#1e1e1e',
-                            titleColor: '#e8e8e8',
-                            bodyColor: '#e8e8e8',
-                            borderColor: '#2a2a2a',
-                            borderWidth: 1,
-                            titleFont: {
-                                family: "'JetBrains Mono', monospace",
-                                size: 12
-                            },
-                            bodyFont: {
-                                family: "'JetBrains Mono', monospace",
-                                size: 11
-                            },
-                            padding: 12,
+                            ...chartTooltipConfig,
                             callbacks: {
                                 label: (context) => {
                                     const item = data[context.dataIndex];
@@ -2139,29 +2243,15 @@
                     },
                     scales: {
                         x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#888',
-                                font: {
-                                    family: "'JetBrains Mono', monospace",
-                                    size: 11
-                                }
-                            }
+                            grid: { display: false },
+                            ticks: { color: '#888', font: { ...chartTickFont, size: 11 } }
                         },
                         y: {
                             beginAtZero: true,
-                            grid: {
-                                color: '#2a2a2a',
-                                drawBorder: false
-                            },
+                            grid: chartGridConfig,
                             ticks: {
                                 color: '#888',
-                                font: {
-                                    family: "'JetBrains Mono', monospace",
-                                    size: 10
-                                },
+                                font: chartTickFont,
                                 callback: (value) => '$' + value.toLocaleString()
                             }
                         }
@@ -2202,6 +2292,400 @@
                     <td style="text-align: right;">${purchase.shares.toFixed(4)}</td>
                 `;
                 tbody.appendChild(row);
+            });
+        }
+
+        // ============================================
+        // STOCK COMPARISON TAB
+        // ============================================
+
+        // DOM Elements for comparison tab
+        const tickerRowsContainer = document.getElementById('tickerRows');
+        const addTickerBtn = document.getElementById('addTickerBtn');
+        const comparisonAnalyzeBtn = document.getElementById('comparisonAnalyzeBtn');
+        const comparisonLoadingEl = document.getElementById('comparisonLoading');
+        const comparisonErrorEl = document.getElementById('comparisonErrorMessage');
+        const comparisonResultsPanel = document.getElementById('comparisonResultsPanel');
+        const comparisonStartDateInput = document.getElementById('comparisonStartDate');
+        const comparisonEndDateInput = document.getElementById('comparisonEndDate');
+
+        // State helpers for comparison tab
+        const comparisonTab = createTabHelpers(comparisonLoadingEl, comparisonErrorEl, comparisonResultsPanel);
+
+        // Chart instance for comparison
+        let comparisonChartInstance = null;
+
+        // Colors for chart lines
+        const chartColors = [
+            '#ff8c00', // Orange
+            '#4da6ff', // Blue
+            '#00c853', // Green
+            '#ff3d3d', // Red
+            '#ffd740', // Yellow
+            '#e040fb', // Purple
+            '#00bcd4', // Cyan
+            '#ff6e40', // Deep Orange
+            '#69f0ae', // Light Green
+            '#7c4dff'  // Deep Purple
+        ];
+
+        // Set default dates for comparison tab
+        comparisonEndDateInput.value = formatDateForInput(getPreviousBusinessDay());
+        const comparisonOneYearAgo = new Date(getPreviousBusinessDay());
+        comparisonOneYearAgo.setFullYear(comparisonOneYearAgo.getFullYear() - 1);
+        comparisonStartDateInput.value = formatDateForInput(comparisonOneYearAgo);
+
+        // Comparison results data for chart
+        let comparisonResultsData = [];
+
+        // Update remove button states (disable if only one row)
+        function updateRemoveButtonStates() {
+            const rows = tickerRowsContainer.querySelectorAll('.ticker-row-item');
+            const removeButtons = tickerRowsContainer.querySelectorAll('.btn-remove-ticker');
+
+            removeButtons.forEach(btn => {
+                btn.disabled = rows.length <= 1;
+            });
+        }
+
+        // Add a new ticker row
+        function addTickerRow() {
+            const newRow = document.createElement('div');
+            newRow.className = 'ticker-row-item';
+            newRow.innerHTML = `
+                <button class="btn-remove-ticker" title="Remove ticker">×</button>
+                <div class="input-group ticker">
+                    <label>Ticker</label>
+                    <input type="text" class="comparison-ticker" placeholder="AAPL" maxlength="10">
+                </div>
+                <div class="ticker-result" style="display: none;">
+                    <span class="ticker-result-label">Total Return</span>
+                    <span class="ticker-result-value total-return">—</span>
+                </div>
+                <div class="ticker-result" style="display: none;">
+                    <span class="ticker-result-label">Annual Eq.</span>
+                    <span class="ticker-result-value annual-return">—</span>
+                </div>
+                <span class="ticker-color-indicator"></span>
+            `;
+
+            tickerRowsContainer.appendChild(newRow);
+
+            // Add event listener to new remove button
+            const removeBtn = newRow.querySelector('.btn-remove-ticker');
+            removeBtn.addEventListener('click', () => removeTickerRow(newRow));
+
+            // Add enter key handler
+            const input = newRow.querySelector('.comparison-ticker');
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') runComparisonAnalysis();
+            });
+
+            updateRemoveButtonStates();
+
+            // Focus the new input
+            input.focus();
+        }
+
+        // Remove a ticker row
+        function removeTickerRow(row) {
+            row.remove();
+            updateRemoveButtonStates();
+        }
+
+        // Event listeners for ticker management
+        addTickerBtn.addEventListener('click', addTickerRow);
+        comparisonAnalyzeBtn.addEventListener('click', runComparisonAnalysis);
+
+        // Add event listeners to existing remove buttons
+        document.querySelectorAll('.btn-remove-ticker').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                removeTickerRow(e.target.closest('.ticker-row-item'));
+            });
+        });
+
+        // Add enter key handlers to existing ticker inputs
+        document.querySelectorAll('.comparison-ticker').forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') runComparisonAnalysis();
+            });
+        });
+
+        // Clear inline results when inputs change
+        function clearInlineResults() {
+            document.querySelectorAll('.ticker-row-item').forEach(row => {
+                row.querySelectorAll('.ticker-result').forEach(el => el.style.display = 'none');
+                const colorIndicator = row.querySelector('.ticker-color-indicator');
+                if (colorIndicator) colorIndicator.style.display = 'none';
+            });
+        }
+
+        // Calculate total return for a single stock (dividends reinvested)
+        function calculateStockReturn(priceData) {
+            if (!priceData || priceData.length < 2) return null;
+
+            const startDate = priceData[0].date.split('T')[0];
+            const endDate = priceData[priceData.length - 1].date.split('T')[0];
+            const startPrice = priceData[0].close;
+
+            // Track shares with dividend reinvestment
+            let shares = 1; // Start with 1 share for normalization
+            const dailyReturns = [];
+
+            priceData.forEach((day, index) => {
+                const date = day.date.split('T')[0];
+                const price = day.close;
+
+                // Check for dividend
+                if (day.divCash && day.divCash > 0) {
+                    const dividendAmount = day.divCash * shares;
+                    const newShares = dividendAmount / price;
+                    shares += newShares;
+                }
+
+                // Calculate return as percentage from start
+                const currentValue = shares * price;
+                const initialValue = 1 * startPrice;
+                const returnPct = ((currentValue - initialValue) / initialValue) * 100;
+
+                dailyReturns.push({ date, value: returnPct });
+            });
+
+            const finalValue = shares * priceData[priceData.length - 1].close;
+            const totalReturn = ((finalValue - startPrice) / startPrice) * 100;
+            const annualized = calculateAnnualizedReturn(totalReturn, startDate, endDate);
+
+            return {
+                totalReturn,
+                annualized,
+                dailyReturns
+            };
+        }
+
+        // Main comparison analysis function
+        async function runComparisonAnalysis() {
+            const startDate = comparisonStartDateInput.value;
+            const endDate = comparisonEndDateInput.value;
+
+            // Get all ticker rows and inputs
+            const tickerRows = document.querySelectorAll('.ticker-row-item');
+            const tickerInputs = document.querySelectorAll('.comparison-ticker');
+            const tickers = Array.from(tickerInputs)
+                .map(input => input.value.trim().toUpperCase())
+                .filter(ticker => ticker.length > 0);
+
+            // Validation
+            if (tickers.length === 0) {
+                comparisonTab.showError('Please enter at least one ticker symbol');
+                return;
+            }
+            if (!startDate || !endDate) {
+                comparisonTab.showError('Please select start and end dates');
+                return;
+            }
+            if (new Date(startDate) >= new Date(endDate)) {
+                comparisonTab.showError('Start date must be before end date');
+                return;
+            }
+
+            // Check for duplicates
+            const uniqueTickers = [...new Set(tickers)];
+            if (uniqueTickers.length !== tickers.length) {
+                comparisonTab.showError('Please remove duplicate ticker symbols');
+                return;
+            }
+
+            comparisonTab.hideError();
+            clearInlineResults();
+            comparisonTab.showResults(false);
+            comparisonTab.showLoading(true);
+            comparisonAnalyzeBtn.disabled = true;
+
+            try {
+                // Build map of ticker to row for inline updates
+                const tickerToRow = {};
+                tickerRows.forEach(row => {
+                    const input = row.querySelector('.comparison-ticker');
+                    const ticker = input.value.trim().toUpperCase();
+                    if (ticker) {
+                        tickerToRow[ticker] = row;
+                    }
+                });
+
+                // Fetch data for all tickers in parallel
+                const fetchPromises = tickers.map(ticker =>
+                    fetchPriceData(ticker, startDate, endDate)
+                        .then(data => ({ ticker, data, error: null }))
+                        .catch(error => ({ ticker, data: null, error: error.message }))
+                );
+
+                const results = await Promise.all(fetchPromises);
+
+                // Check for errors
+                const errors = results.filter(r => r.error);
+                if (errors.length === results.length) {
+                    throw new Error('Failed to fetch data for all tickers');
+                }
+
+                // Process successful results
+                comparisonResultsData = results
+                    .filter(r => r.data && r.data.length > 0)
+                    .map((r, index) => {
+                        const returns = calculateStockReturn(r.data);
+                        return {
+                            ticker: r.ticker,
+                            totalReturn: returns.totalReturn,
+                            annualized: returns.annualized,
+                            dailyReturns: returns.dailyReturns,
+                            color: chartColors[index % chartColors.length]
+                        };
+                    });
+
+                if (comparisonResultsData.length === 0) {
+                    throw new Error('No valid data found for any ticker');
+                }
+
+                // Show warnings for failed tickers
+                if (errors.length > 0) {
+                    const failedTickers = errors.map(e => e.ticker).join(', ');
+                    console.warn(`Failed to fetch: ${failedTickers}`);
+                }
+
+                // Update inline results for each ticker
+                comparisonResultsData.forEach(result => {
+                    const row = tickerToRow[result.ticker];
+                    if (row) {
+                        const totalReturnEl = row.querySelector('.total-return');
+                        const annualReturnEl = row.querySelector('.annual-return');
+                        const colorIndicator = row.querySelector('.ticker-color-indicator');
+                        const resultDivs = row.querySelectorAll('.ticker-result');
+
+                        // Show result divs
+                        resultDivs.forEach(div => div.style.display = 'flex');
+
+                        // Set values with color
+                        const returnClass = result.totalReturn >= 0 ? 'positive' : 'negative';
+                        totalReturnEl.textContent = formatPercent(result.totalReturn);
+                        totalReturnEl.className = `ticker-result-value total-return ${returnClass}`;
+
+                        annualReturnEl.textContent = formatPercent(result.annualized);
+                        annualReturnEl.className = `ticker-result-value annual-return ${returnClass}`;
+
+                        // Show color indicator
+                        colorIndicator.style.display = 'block';
+                        colorIndicator.style.backgroundColor = result.color;
+                    }
+                });
+
+                // Mark failed tickers
+                errors.forEach(err => {
+                    const row = tickerToRow[err.ticker];
+                    if (row) {
+                        const totalReturnEl = row.querySelector('.total-return');
+                        const annualReturnEl = row.querySelector('.annual-return');
+                        const resultDivs = row.querySelectorAll('.ticker-result');
+
+                        resultDivs.forEach(div => div.style.display = 'flex');
+                        totalReturnEl.textContent = 'Error';
+                        totalReturnEl.className = 'ticker-result-value total-return negative';
+                        annualReturnEl.textContent = '—';
+                        annualReturnEl.className = 'ticker-result-value annual-return';
+                    }
+                });
+
+                updateComparisonChart();
+                comparisonTab.showResults(true);
+
+            } catch (error) {
+                console.error('Comparison analysis error:', error);
+                comparisonTab.showError(error.message || 'Failed to analyze stocks. Please check your inputs.');
+            } finally {
+                comparisonTab.showLoading(false);
+                comparisonAnalyzeBtn.disabled = false;
+            }
+        }
+
+        // Update comparison chart
+        function updateComparisonChart() {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+            // Destroy existing chart
+            if (comparisonChartInstance) {
+                comparisonChartInstance.destroy();
+            }
+
+            // Find the longest date series to use as labels
+            let longestSeries = comparisonResultsData[0].dailyReturns;
+            comparisonResultsData.forEach(result => {
+                if (result.dailyReturns.length > longestSeries.length) {
+                    longestSeries = result.dailyReturns;
+                }
+            });
+
+            const labels = longestSeries.map(d => d.date);
+
+            // Create datasets for each ticker
+            const datasets = comparisonResultsData.map(result => ({
+                label: result.ticker,
+                data: result.dailyReturns.map(d => d.value),
+                borderColor: result.color,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.1
+            }));
+
+            comparisonChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#888',
+                                font: { ...chartTickFont, size: 11 },
+                                usePointStyle: true,
+                                pointStyle: 'line',
+                                padding: 16
+                            }
+                        },
+                        tooltip: {
+                            ...chartTooltipConfig,
+                            callbacks: {
+                                title: (items) => formatDateForDisplay(labels[items[0].dataIndex]),
+                                label: (context) => {
+                                    const value = context.raw;
+                                    return `${context.dataset.label}: ${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'month', displayFormats: { month: 'MMM yyyy' } },
+                            grid: chartGridConfig,
+                            ticks: { color: '#888', font: chartTickFont }
+                        },
+                        y: {
+                            grid: chartGridConfig,
+                            ticks: {
+                                color: '#888',
+                                font: chartTickFont,
+                                callback: (value) => value.toFixed(0) + '%'
+                            }
+                        }
+                    }
+                }
             });
         }
     </script>
